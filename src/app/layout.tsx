@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
+import { Syne, DM_Sans } from "next/font/google";
+import "../styles/globals.css";
+import "../styles/animations.css";
+import SessionProvider from "@/components/SessionProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const syne = Syne({ 
+  subsets: ["latin"],
+  variable: "--font-display",
+});
+
+const dmSans = DM_Sans({ 
+  subsets: ["latin"],
+  variable: "--font-body",
+});
 
 export const metadata: Metadata = {
-  title: "LinkBio | Your Premium Link-in-Bio",
+  title: "LinkBio | Your links. Your brand. One page.",
   description: "Create a beautiful, premium link-in-bio page in seconds.",
   openGraph: {
     type: "website",
@@ -22,12 +31,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body className={inter.className}>
+    <html lang="en" className={`${syne.variable} ${dmSans.variable}`}>
+      <body>
+        <SessionProvider>
           {children}
-        </body>
-      </html>
-    </ClerkProvider>
+        </SessionProvider>
+      </body>
+    </html>
   );
 }

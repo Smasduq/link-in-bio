@@ -1,9 +1,11 @@
-import { authMiddleware } from "@clerk/nextjs/server";
+import { withAuth } from "next-auth/middleware";
 
-export default authMiddleware({
-  publicRoutes: ["/", "/[username]", "/api/webhooks(.*)"],
+export default withAuth({
+  pages: {
+    signIn: "/sign-in",
+  },
 });
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: ["/dashboard/:path*"],
 };
