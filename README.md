@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LinkBio
 
-## Getting Started
+A link-in-bio platform with a **Next.js frontend** and **FastAPI backend**.
 
-First, run the development server:
+## Project Structure
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+link-in-bio/
+├── backend/          # FastAPI API server
+│   ├── app/
+│   │   ├── routers/  # auth, profile, links, public, analytics
+│   │   ├── models/   # SQLAlchemy models
+│   │   └── schemas/  # Pydantic schemas
+│   └── requirements.txt
+└── frontend/         # Next.js 14 App Router UI
+    └── src/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Auth** — Register, login (JWT), protected dashboard
+- **Profile** — Username, bio, avatar, display name
+- **Links** — CRUD, drag-and-drop reorder, active/inactive toggle, auto favicon
+- **Appearance** — Background, accent color, button style customization
+- **Analytics** — Page views, link clicks, 7-day charts, per-link stats
+- **Public pages** — `/[username]` with theme applied and click tracking
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Quick Start
 
-## Learn More
+### Backend
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate        # Windows
+pip install -r requirements.txt
+copy .env.example .env
+uvicorn app.main:app --reload --port 8000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+API docs: http://localhost:8000/docs
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Frontend
 
-## Deploy on Vercel
+```bash
+cd frontend
+npm install
+copy .env.local.example .env.local
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+App: http://localhost:3000
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Neon/PostgreSQL connection string (paste from Neon dashboard). Plain `postgresql://` URLs work — the app auto-selects the `psycopg` driver |
+| `SECRET_KEY` | JWT signing secret |
+| `CORS_ORIGINS` | Comma-separated frontend URLs |
+| `FRONTEND_URL` | Frontend base URL (used in email links) |
+| `MAIL_FROM` | Sender address (`hello@smasduq.xyz`) |
+| `SMTP_HOST` | Zoho SMTP host (`smtp.zoho.com`) |
+| `SMTP_PORT` | `587` for STARTTLS, `465` for SSL |
+| `SMTP_USER` | Zoho mailbox login (same as `MAIL_FROM`) |
+| `SMTP_PASSWORD` | Zoho app-specific password |
+| `SMTP_USE_SSL` | `false` for port 587, `true` for port 465 |
+
+### Frontend (`frontend/.env.local`)
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Backend URL (default: `http://localhost:8000`) |
+
+## API Endpoints
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/register/request` | — | Send signup OTP |
+| POST | `/api/auth/register/verify` | — | Verify OTP & create account |
+| POST | `/api/auth/login/request` | — | Send login OTP |
+| POST | `/api/auth/login/verify` | — | Verify OTP & sign in |
+| POST | `/api/auth/otp/resend` | — | Resend OTP code |
+| POST | `/api/auth/forgot-password` | — | Send password reset email |
+| POST | `/api/auth/reset-password` | — | Reset password with token |
+| GET/PATCH | `/api/profile` | JWT | Profile settings |
+| GET/POST | `/api/links` | JWT | List/create links |
+| PATCH/DELETE | `/api/links/{id}` | JWT | Update/delete link |
+| POST | `/api/links/reorder` | JWT | Reorder links |
+| GET | `/api/public/{username}` | — | Public profile page data |
+| POST | `/api/public/{username}/view` | — | Track page view |
+| POST | `/api/public/links/{id}/click` | — | Track link click |
+| GET | `/api/analytics` | JWT | Dashboard analytics |
