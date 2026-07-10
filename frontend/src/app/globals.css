@@ -1,0 +1,267 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 26% 14%;
+    --card: 0 0% 99%;
+    --card-foreground: 220 26% 14%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 220 26% 14%;
+    --muted: 210 40% 98%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 160 84% 39%;
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+    --primary: 160 84% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 12%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 12%;
+    --muted-foreground: 215 16% 57%;
+    --accent: 160 84% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 51%;
+    --success: 160 84% 45%;
+    --border: 217 33% 16%;
+    --input: 217 33% 16%;
+    --ring: 160 84% 45%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl border border-border shadow-soft;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 bg-clip-text text-transparent;
+  }
+
+  .gradient-bg {
+    @apply bg-gradient-to-b from-emerald-50/80 via-white to-secondary;
+  }
+
+  .dark .gradient-bg {
+    @apply from-emerald-950/30 via-background to-background;
+  }
+
+  .premium-card {
+    @apply rounded-2xl border border-border bg-card shadow-soft transition-all duration-300;
+    @apply hover:-translate-y-0.5 hover:border-emerald-400/60 hover:shadow-md;
+  }
+
+  /* Hero storytelling section */
+  .hero-story {
+    background-color: #ffffff;
+  }
+
+  .hero-main-bg {
+    will-change: transform;
+  }
+
+  /* Bottom fade on the main bg only — matches hero section white (#ffffff) */
+  .hero-bg-bottom-fade {
+    height: 58%;
+    background: linear-gradient(
+      to top,
+      #ffffff 0%,
+      #ffffff 10%,
+      rgba(255, 255, 255, 0.94) 24%,
+      rgba(255, 255, 255, 0.72) 42%,
+      rgba(255, 255, 255, 0.3) 60%,
+      transparent 100%
+    );
+  }
+
+  @media (min-width: 768px) {
+    .hero-bg-bottom-fade {
+      height: 50%;
+      background: linear-gradient(
+        to top,
+        #ffffff 0%,
+        #ffffff 8%,
+        rgba(255, 255, 255, 0.92) 22%,
+        rgba(255, 255, 255, 0.65) 40%,
+        rgba(255, 255, 255, 0.25) 58%,
+        transparent 100%
+      );
+    }
+  }
+
+  .hero-photo-frame {
+    opacity: 0.9;
+  }
+
+  @media (min-width: 768px) {
+    .hero-photo-frame {
+      opacity: 1;
+    }
+  }
+
+  .hero-glass {
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.08);
+  }
+
+  .hero-preview-card {
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
+  }
+
+  .hero-preview-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.1);
+  }
+
+  .hero-float-chip {
+    animation: heroFloat 5s ease-in-out infinite;
+  }
+
+  .hero-analytics-card {
+    animation: heroFloat 6s ease-in-out infinite reverse;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  @keyframes heroFadeUp {
+    from {
+      transform: translateY(20px);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes heroGlowPulse {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+  }
+
+  @keyframes heroFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes heroTileDrift {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-6px) scale(1.02);
+    }
+  }
+
+  @keyframes heroTestimonialFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .hero-glow {
+    animation: heroGlowPulse 7s ease-in-out infinite;
+  }
+
+  .hero-collage .hero-tile-1 { animation: heroTileDrift 8s ease-in-out infinite; }
+  .hero-collage .hero-tile-2 { animation: heroTileDrift 9s ease-in-out infinite 0.5s; }
+  .hero-collage .hero-tile-3 { animation: heroTileDrift 10s ease-in-out infinite 1s; }
+  .hero-collage .hero-tile-4 { animation: heroTileDrift 8.5s ease-in-out infinite 1.5s; }
+  .hero-collage .hero-tile-5 { animation: heroTileDrift 9.5s ease-in-out infinite 0.8s; }
+  .hero-collage .hero-tile-6 { animation: heroTileDrift 10.5s ease-in-out infinite 1.2s; }
+  .hero-collage .hero-tile-7 { animation: heroTileDrift 11s ease-in-out infinite; }
+  .hero-collage .hero-tile-8 { animation: heroTileDrift 9s ease-in-out infinite 0.3s; }
+
+  .hero-testimonial {
+    animation: heroTestimonialFloat 6s ease-in-out infinite;
+  }
+
+  .hero-enter {
+    animation: heroFadeUp 0.75s ease-out forwards;
+  }
+
+  .hero-enter-1 { animation-delay: 0ms; }
+  .hero-enter-2 { animation-delay: 120ms; }
+  .hero-enter-3 { animation-delay: 240ms; }
+  .hero-enter-4 { animation-delay: 360ms; }
+  .hero-enter-5 { animation-delay: 480ms; }
+  .hero-enter-6 { animation-delay: 600ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-enter,
+    .hero-glow,
+    .hero-float-chip,
+    .hero-analytics-card,
+    .hero-testimonial,
+    .hero-collage .hero-tile-1,
+    .hero-collage .hero-tile-2,
+    .hero-collage .hero-tile-3,
+    .hero-collage .hero-tile-4,
+    .hero-collage .hero-tile-5,
+    .hero-collage .hero-tile-6,
+    .hero-collage .hero-tile-7,
+    .hero-collage .hero-tile-8 {
+      animation: none !important;
+      transform: none;
+    }
+  }
+}
+
+.profile-theme-root {
+  color: #ffffff;
+  isolation: isolate;
+}
