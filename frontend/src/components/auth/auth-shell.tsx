@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Logo } from "@/components/brand/logo";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function AuthShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) {
+export function AuthShell({ children, title, subtitle }: { children?: ReactNode; title: string; subtitle: string }) {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-secondary px-4 py-12">
       <div className="pointer-events-none absolute inset-0 gradient-bg" />
