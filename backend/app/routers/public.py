@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -73,5 +73,10 @@ def track_page_view(username: str, payload: TrackViewRequest, db: Session = Depe
 
 
 @router.post("/links/{link_id}/click", status_code=status.HTTP_204_NO_CONTENT)
-def track_link_click_public(link_id: str, payload: TrackClickRequest, db: Session = Depends(get_db)):
-    record_link_click(db, link_id, payload.referrer)
+def track_link_click_public(
+    link_id: str,
+    payload: TrackClickRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    record_link_click(db, link_id, request, payload.referrer)

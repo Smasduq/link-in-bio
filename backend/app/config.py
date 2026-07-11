@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     smtp_use_ssl: bool = False
     otp_expire_minutes: int = 10
 
+    # Offline GeoIP — download GeoLite2-Country.mmdb from MaxMind (free account)
+    geolite2_country_path: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

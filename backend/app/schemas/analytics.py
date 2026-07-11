@@ -37,3 +37,25 @@ class TrackViewRequest(BaseModel):
 
 class TrackClickRequest(BaseModel):
     referrer: str | None = None
+
+
+class ClickCountByReferrer(BaseModel):
+    referrer: str
+    count: int
+
+
+class ClickCountByDevice(BaseModel):
+    device: str
+    count: int
+
+
+class ClickCountByDay(BaseModel):
+    date: str
+    count: int
+
+
+class LinkClickInsights(BaseModel):
+    total_clicks: int
+    clicks_by_referrer: list[ClickCountByReferrer]
+    clicks_by_device: list[ClickCountByDevice]
+    clicks_by_day: list[ClickCountByDay]
