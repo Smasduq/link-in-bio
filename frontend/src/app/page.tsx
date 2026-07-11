@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import {
-  ArrowRight, BarChart3, Globe, Link2, Palette, Shield, Zap,
+  BarChart3, Globe, Link2, Palette, Zap,
 } from "lucide-react";
 import Navbar from "@/components/Navbar/Navbar";
+import { FinalCtaFaqSection } from "@/components/landing/final-cta-faq";
 import { HeroSection } from "@/components/landing/hero-section";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
@@ -34,7 +33,7 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <div className="light relative min-h-screen overflow-x-hidden bg-white text-[#111827]">
+    <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
       <Navbar heroMode />
       <main>
         <HeroSection />
@@ -67,49 +66,10 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-card dark:bg-card">
-              <div className="grid lg:grid-cols-2">
-                <div className="flex flex-col justify-center p-10 lg:p-14">
-                  <div className="mb-4 flex items-center gap-2 text-emerald-600">
-                    <Shield className="h-5 w-5" />
-                    <span className="text-sm font-semibold">Trusted & fast</span>
-                  </div>
-                  <h2 className="font-display text-3xl font-bold tracking-tight">
-                    Your audience deserves a better first impression
-                  </h2>
-                  <p className="mt-4 text-muted-foreground leading-relaxed">
-                    Replace cluttered bios with a single, elegant page. Add links, track clicks, and customize your look — all from one dashboard.
-                  </p>
-                  <Link href="/sign-up" className="mt-8">
-                    <Button size="lg">
-                      Create your page <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-                <div className="flex items-center justify-center bg-secondary/80 p-10 lg:p-14">
-                  <div className="w-full max-w-xs space-y-3">
-                    {[Link2, Globe, BarChart3].map((Icon, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-4 rounded-xl border border-border bg-white p-4 shadow-soft transition-all hover:border-emerald-400/60 hover:-translate-y-0.5 dark:bg-card"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <div className="h-3 flex-1 rounded-full bg-border" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <FinalCtaFaqSection />
       </main>
 
-      <footer className="border-t border-border bg-secondary/30 py-12 text-center text-sm text-muted-foreground">
+      <footer className="finale-footer">
         © 2026 LinkBio. All rights reserved.
       </footer>
     </div>

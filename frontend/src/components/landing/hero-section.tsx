@@ -15,15 +15,15 @@ const stats = [
 export function HeroSection() {
   return (
     <section
-      className="hero-story relative isolate flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-white px-3 pb-16 pt-24 sm:px-6 sm:pb-20 sm:pt-28 lg:px-8"
+      className="hero-story relative isolate flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-background px-3 pb-16 pt-24 sm:px-6 sm:pb-20 sm:pt-28 lg:px-8"
       aria-labelledby="hero-heading"
     >
       <HeroBackground />
 
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
         <div className="hero-enter hero-enter-1 relative">
-          <Badge className="mb-8 gap-1.5 border-black/[0.06] bg-white/90 px-4 py-1.5 text-[#111827] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5 text-[#10b981]" aria-hidden />
+          <Badge className="mb-8 gap-1.5 border-border bg-card/90 px-4 py-1.5 text-foreground shadow-soft backdrop-blur-sm">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-500" aria-hidden />
             Your link-in-bio, elevated
           </Badge>
         </div>
@@ -31,16 +31,16 @@ export function HeroSection() {
         <div className="hero-enter hero-enter-2 relative px-1 sm:px-0">
           <h1
             id="hero-heading"
-            className="font-display text-[2.375rem] font-black leading-[1.06] tracking-[-0.04em] text-[#111827] sm:text-[3.75rem] md:text-[5rem] lg:text-[5.625rem]"
+            className="font-display text-[2.375rem] font-black leading-[1.06] tracking-[-0.04em] text-foreground sm:text-[3.75rem] md:text-[5rem] lg:text-[5.625rem]"
           >
             One page for
             <br className="hidden sm:block" />
             <span className="sm:hidden"> </span>
-            <span className="text-[#10b981]">everything you share.</span>
+            <span className="text-emerald-500">everything you share.</span>
           </h1>
         </div>
 
-        <p className="hero-enter hero-enter-3 relative mx-auto mt-6 max-w-[600px] px-2 text-base leading-relaxed text-[#374151] sm:mt-8 sm:px-0 sm:text-lg sm:text-[#6b7280] md:text-xl">
+        <p className="hero-enter hero-enter-3 relative mx-auto mt-6 max-w-[600px] px-2 text-base leading-relaxed text-muted-foreground sm:mt-8 sm:px-0 sm:text-lg md:text-xl">
           Creators, founders, and artists use LinkBio to bring every link, offer, and story into one
           beautiful page — so the people who matter always find the right door.
         </p>
@@ -53,7 +53,7 @@ export function HeroSection() {
             </span>
           </Link>
           <Link href="/sign-in" className="sm:w-auto">
-            <span className="inline-flex w-full min-w-[200px] items-center justify-center rounded-xl border border-black/[0.06] bg-white px-8 py-3.5 text-base font-semibold text-[#111827] shadow-sm transition-all duration-[250ms] hover:-translate-y-0.5 hover:shadow-md sm:w-auto">
+            <span className="inline-flex w-full min-w-[200px] items-center justify-center rounded-xl border border-border bg-card px-8 py-3.5 text-base font-semibold text-foreground shadow-sm transition-all duration-[250ms] hover:-translate-y-0.5 hover:shadow-md sm:w-auto">
               Sign In
             </span>
           </Link>
@@ -65,13 +65,13 @@ export function HeroSection() {
           {stats.map((stat) => (
             <div
               key={stat.label}
-              className="group rounded-[20px] border border-black/[0.06] bg-white/90 p-5 text-center shadow-[0_4px_24px_rgba(0,0,0,0.04)] backdrop-blur-sm transition-all duration-[250ms] hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
+              className="group rounded-[20px] border border-border bg-card/90 p-5 text-center shadow-soft backdrop-blur-sm transition-all duration-[250ms] hover:-translate-y-1 hover:shadow-card"
             >
-              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-[#10b981] transition-colors duration-[250ms] group-hover:bg-emerald-100">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors duration-[250ms] group-hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:group-hover:bg-emerald-950/70">
                 <stat.icon className="h-5 w-5" aria-hidden />
               </div>
-              <p className="font-display text-xl font-bold text-[#111827]">{stat.value}</p>
-              <p className="mt-1 text-sm font-medium text-[#6b7280]">{stat.label}</p>
+              <p className="font-display text-xl font-bold text-foreground">{stat.value}</p>
+              <p className="mt-1 text-sm font-medium text-muted-foreground">{stat.label}</p>
             </div>
           ))}
         </div>

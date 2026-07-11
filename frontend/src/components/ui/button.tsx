@@ -8,7 +8,7 @@ const variants = {
   primary:
     "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 hover:-translate-y-0.5 active:translate-y-0 active:bg-emerald-800 focus-visible:ring-emerald-500",
   secondary:
-    "bg-white text-foreground border border-border shadow-sm hover:bg-secondary hover:border-emerald-400/40 active:bg-secondary",
+    "bg-card text-foreground border border-border shadow-sm hover:bg-secondary hover:border-emerald-400/40 active:bg-secondary",
   outline:
     "border border-emerald-600 bg-transparent text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-950/50",
   ghost:

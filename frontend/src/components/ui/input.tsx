@@ -28,7 +28,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             type={isPassword && showPassword ? "text" : type}
             className={cn(
-              "flex h-11 w-full rounded-xl border border-input bg-white px-4 py-2 text-sm",
+              "flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm",
               "placeholder:text-muted-foreground transition-all duration-200",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-secondary",
@@ -70,7 +70,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
           ref={ref}
           id={inputId}
           className={cn(
-            "flex min-h-[100px] w-full rounded-xl border border-input bg-white px-4 py-3 text-sm",
+            "flex min-h-[100px] w-full rounded-xl border border-input bg-background px-4 py-3 text-sm",
             "placeholder:text-muted-foreground transition-all duration-200 resize-y",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500",
             error && "border-destructive focus-visible:ring-destructive/30",

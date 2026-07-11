@@ -17,11 +17,19 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "LinkBio | Your links. Your brand. One page.",
   description: "Create a beautiful, premium link-in-bio page in seconds.",
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/favicon.png",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
     url: "https://link.smasduq.xyz",
     siteName: "LinkBio",
+    images: [{ url: "/logo.svg", width: 335, height: 80, alt: "LinkBio" }],
   },
 };
 

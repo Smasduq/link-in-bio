@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -32,25 +33,14 @@ export default function Navbar({ heroMode = false }: { heroMode?: boolean }) {
           "z-50 transition-all duration-300",
           heroMode ? "fixed left-0 right-0 top-0" : "sticky top-0",
           scrolled
-            ? "border-b border-black/[0.06] bg-white/85 shadow-sm backdrop-blur-xl"
+            ? "border-b border-border bg-background/85 shadow-sm backdrop-blur-xl"
             : heroMode
               ? "border-b border-transparent bg-transparent"
               : "border-b border-transparent bg-transparent"
         )}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className={cn(
-              "flex items-center gap-2.5 font-display text-lg font-bold",
-              heroMode && !scrolled ? "text-[#111827]" : "text-foreground"
-            )}
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold text-white shadow-sm">
-              L
-            </span>
-            LinkBio
-          </Link>
+          <Logo href="/" height={32} className="h-8" />
 
           <nav className="hidden items-center gap-2 md:flex">
             <ThemeToggle />
@@ -90,7 +80,7 @@ export default function Navbar({ heroMode = false }: { heroMode?: boolean }) {
         <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm" onClick={() => setOpen(false)} />
         <div
           className={cn(
-            "absolute right-0 top-0 flex h-full w-[min(320px,85vw)] flex-col bg-white shadow-xl transition-transform duration-300 dark:bg-card",
+            "absolute right-0 top-0 flex h-full w-[min(320px,85vw)] flex-col bg-card shadow-xl transition-transform duration-300",
             open ? "translate-x-0" : "translate-x-full"
           )}
         >

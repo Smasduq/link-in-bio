@@ -1,28 +1,23 @@
 "use client";
 
 import { useEffect } from "react";
-import { useTheme } from "next-themes";
 
 export function ProfileThemeScope({ children }: { children: React.ReactNode }) {
-  const { resolvedTheme } = useTheme();
-
   useEffect(() => {
     const html = document.documentElement;
-    const body = document.body;
-    const prevBodyBg = body.style.backgroundColor;
-    const prevBodyColor = body.style.color;
+    const hadDark = html.classList.contains("dark");
+    const hadLight = html.classList.contains("light");
 
     html.classList.remove("dark", "light");
-    body.style.backgroundColor = "transparent";
-    body.style.color = "";
+    document.body.style.backgroundColor = "transparent";
 
     return () => {
-      body.style.backgroundColor = prevBodyBg;
-      body.style.color = prevBodyColor;
-      if (resolvedTheme === "dark") html.classList.add("dark");
-      else html.classList.remove("dark");
+      document.body.style.backgroundColor = "";
+      html.classList.remove("dark", "light");
+      if (hadDark) html.classList.add("dark");
+      else if (hadLight) html.classList.add("light");
     };
-  }, [resolvedTheme]);
+  }, []);
 
   return <>{children}</>;
 }

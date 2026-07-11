@@ -167,7 +167,7 @@ function DesktopTestimonialCard({
 }) {
   return (
     <div
-      className={`hero-testimonial relative z-10 -mt-3 hidden w-full items-start gap-2.5 rounded-2xl border border-white/70 bg-white/85 p-3 shadow-[0_16px_40px_rgba(0,0,0,0.1)] backdrop-blur-xl md:flex ${
+      className={`hero-testimonial relative z-10 -mt-3 hidden w-full items-start gap-2.5 rounded-2xl border border-border bg-card/85 p-3 shadow-card backdrop-blur-xl md:flex ${
         align === "right" ? "flex-row-reverse text-right" : ""
       }`}
       style={{ animationDelay: item.delay }}
@@ -176,9 +176,9 @@ function DesktopTestimonialCard({
         {item.initial}
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] font-medium leading-snug text-[#111827]">&ldquo;{item.quote}&rdquo;</p>
-        <p className="mt-1 text-[10px] font-semibold text-emerald-600">{item.name}</p>
-        <p className="text-[10px] text-[#6b7280]">{item.role}</p>
+        <p className="text-[11px] font-medium leading-snug text-foreground">&ldquo;{item.quote}&rdquo;</p>
+        <p className="mt-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{item.name}</p>
+        <p className="text-[10px] text-muted-foreground">{item.role}</p>
       </div>
     </div>
   );
@@ -234,8 +234,9 @@ export function HeroBackground() {
           quality={isMobile ? 75 : 85}
           className="object-cover object-[center_35%] md:object-center"
         />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_62%_52%_at_50%_30%,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.88)_38%,rgba(255,255,255,0.5)_62%,transparent_100%)] md:bg-[radial-gradient(ellipse_52%_48%_at_50%_36%,rgba(255,255,255,0.9)_0%,rgba(255,255,255,0.55)_48%,transparent_72%)]" />
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/30 via-white/20 to-teal-50/20 md:from-emerald-50/25 md:via-transparent md:to-teal-50/15" />
+        <div className="hero-bg-radial-vignette absolute inset-0" />
+        <div className="hero-bg-tint absolute inset-0" />
+        <div className="hero-bg-top-fade absolute inset-x-0 top-0" />
         <div className="hero-bg-bottom-fade absolute inset-x-0 bottom-0" />
       </div>
 
@@ -280,7 +281,7 @@ export function HeroBackground() {
         })}
       </div>
 
-      <div className="hero-glow absolute left-1/2 top-[24%] z-[1] h-48 w-[85vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/10 blur-[70px] md:top-[28%] md:h-72 md:w-[min(640px,92vw)] md:blur-[90px]" />
+      <div className="hero-glow absolute left-1/2 top-[24%] z-[1] h-48 w-[85vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/10 blur-[70px] dark:bg-emerald-500/5 md:top-[28%] md:h-72 md:w-[min(640px,92vw)] md:blur-[90px]" />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch } from "@/lib/api";
 import { Profile } from "@/types/database";
+import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
 
@@ -34,10 +35,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-secondary/40">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-white md:flex dark:bg-card">
-        <div className="flex h-16 items-center gap-2.5 border-b border-border px-6">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-xs font-bold text-white">L</span>
-          <span className="font-display font-bold">LinkBio</span>
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
+        <div className="flex h-16 items-center border-b border-border px-6">
+          <Logo href="/" height={30} />
         </div>
         <nav className="flex-1 space-y-1 p-4">
           {nav.map((item) => {
@@ -87,7 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between border-b border-border bg-white/80 px-4 backdrop-blur-xl md:px-8 dark:bg-card/80">
+        <header className="flex h-14 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur-xl md:px-8">
           <h1 className="font-display text-lg font-semibold capitalize md:hidden">
             {nav.find((n) => isActive(n.path))?.name || "Dashboard"}
           </h1>
@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="mx-auto max-w-4xl animate-fade-in">{children}</div>
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border bg-white/95 backdrop-blur-xl md:hidden dark:bg-card/95">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border bg-card/95 backdrop-blur-xl md:hidden">
           {nav.slice(0, 4).map((item) => {
             const active = isActive(item.path);
             return (

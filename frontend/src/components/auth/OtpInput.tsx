@@ -61,7 +61,7 @@ export default function OtpInput({ value, onChange, disabled }: OtpInputProps) {
           onPaste={handlePaste}
           aria-label={`Digit ${index + 1}`}
           className={cn(
-            "h-12 w-10 sm:h-14 sm:w-12 rounded-xl border border-input bg-white text-center text-xl font-bold",
+            "h-12 w-10 sm:h-14 sm:w-12 rounded-xl border border-input bg-background text-center text-xl font-bold",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500 transition-all",
             digit.trim() && "border-emerald-500 ring-1 ring-emerald-500/30"
           )}

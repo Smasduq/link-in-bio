@@ -60,7 +60,7 @@ export default function SettingsPage() {
             )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Username</label>
-              <div className="flex overflow-hidden rounded-xl border border-input bg-white transition-all focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/30">
+              <div className="flex overflow-hidden rounded-xl border border-input bg-background transition-all focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/30">
                 <span className="flex items-center bg-secondary px-3 text-sm text-muted-foreground">link.smasduq.xyz/</span>
                 <input
                   className="flex-1 bg-transparent px-3 py-2.5 text-sm outline-none"

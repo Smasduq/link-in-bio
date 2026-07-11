@@ -29,6 +29,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 222 47% 6%;
     --foreground: 210 40% 98%;
     --card: 222 47% 8%;
@@ -63,7 +64,7 @@
 
 @layer components {
   .glass {
-    @apply bg-white/80 backdrop-blur-xl border border-border shadow-soft;
+    @apply bg-background/80 backdrop-blur-xl border border-border shadow-soft;
   }
 
   .gradient-text {
@@ -85,23 +86,129 @@
 
   /* Hero storytelling section */
   .hero-story {
-    background-color: #ffffff;
+    background-color: hsl(var(--background));
   }
 
   .hero-main-bg {
     will-change: transform;
   }
 
-  /* Bottom fade on the main bg only — matches hero section white (#ffffff) */
+  /* Center vignette — light wash in light mode, dark blend in dark mode */
+  .hero-bg-radial-vignette {
+    background: radial-gradient(
+      ellipse 62% 52% at 50% 30%,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(255, 255, 255, 0.88) 38%,
+      rgba(255, 255, 255, 0.5) 62%,
+      transparent 100%
+    );
+  }
+
+  @media (min-width: 768px) {
+    .hero-bg-radial-vignette {
+      background: radial-gradient(
+        ellipse 52% 48% at 50% 36%,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 255, 255, 0.55) 48%,
+        transparent 72%
+      );
+    }
+  }
+
+  .dark .hero-bg-radial-vignette {
+    background: radial-gradient(
+      ellipse 62% 52% at 50% 30%,
+      hsl(var(--background) / 0.96) 0%,
+      hsl(var(--background) / 0.82) 38%,
+      hsl(var(--background) / 0.45) 62%,
+      transparent 100%
+    );
+  }
+
+  @media (min-width: 768px) {
+    .dark .hero-bg-radial-vignette {
+      background: radial-gradient(
+        ellipse 52% 48% at 50% 36%,
+        hsl(var(--background) / 0.94) 0%,
+        hsl(var(--background) / 0.58) 48%,
+        transparent 72%
+      );
+    }
+  }
+
+  /* Color tint over the photo */
+  .hero-bg-tint {
+    background: linear-gradient(
+      to bottom right,
+      rgba(236, 253, 245, 0.3) 0%,
+      rgba(255, 255, 255, 0.2) 45%,
+      rgba(240, 253, 250, 0.2) 100%
+    );
+  }
+
+  @media (min-width: 768px) {
+    .hero-bg-tint {
+      background: linear-gradient(
+        to bottom right,
+        rgba(236, 253, 245, 0.25) 0%,
+        transparent 50%,
+        rgba(240, 253, 250, 0.15) 100%
+      );
+    }
+  }
+
+  .dark .hero-bg-tint {
+    background: linear-gradient(
+      to bottom right,
+      rgba(4, 21, 16, 0.55) 0%,
+      hsl(var(--background) / 0.65) 45%,
+      rgba(2, 12, 10, 0.45) 100%
+    );
+  }
+
+  @media (min-width: 768px) {
+    .dark .hero-bg-tint {
+      background: linear-gradient(
+        to bottom right,
+        rgba(4, 21, 16, 0.5) 0%,
+        hsl(var(--background) / 0.35) 50%,
+        rgba(2, 12, 10, 0.4) 100%
+      );
+    }
+  }
+
+  /* Top edge blend in dark mode — prevents a light wash under the navbar */
+  .hero-bg-top-fade {
+    display: none;
+  }
+
+  .dark .hero-bg-top-fade {
+    display: block;
+    height: 32%;
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--background)) 0%,
+      hsl(var(--background) / 0.85) 35%,
+      transparent 100%
+    );
+  }
+
+  @media (min-width: 768px) {
+    .dark .hero-bg-top-fade {
+      height: 28%;
+    }
+  }
+
+  /* Bottom fade on the main bg — matches hero section background */
   .hero-bg-bottom-fade {
     height: 58%;
     background: linear-gradient(
       to top,
-      #ffffff 0%,
-      #ffffff 10%,
-      rgba(255, 255, 255, 0.94) 24%,
-      rgba(255, 255, 255, 0.72) 42%,
-      rgba(255, 255, 255, 0.3) 60%,
+      hsl(var(--background)) 0%,
+      hsl(var(--background)) 10%,
+      hsl(var(--background) / 0.94) 24%,
+      hsl(var(--background) / 0.72) 42%,
+      hsl(var(--background) / 0.3) 60%,
       transparent 100%
     );
   }
@@ -111,11 +218,11 @@
       height: 50%;
       background: linear-gradient(
         to top,
-        #ffffff 0%,
-        #ffffff 8%,
-        rgba(255, 255, 255, 0.92) 22%,
-        rgba(255, 255, 255, 0.65) 40%,
-        rgba(255, 255, 255, 0.25) 58%,
+        hsl(var(--background)) 0%,
+        hsl(var(--background)) 8%,
+        hsl(var(--background) / 0.92) 22%,
+        hsl(var(--background) / 0.65) 40%,
+        hsl(var(--background) / 0.25) 58%,
         transparent 100%
       );
     }
@@ -132,11 +239,15 @@
   }
 
   .hero-glass {
-    background: rgba(255, 255, 255, 0.78);
+    background: hsl(var(--background) / 0.78);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    border: 1px solid hsl(var(--border));
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark .hero-glass {
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
   }
 
   .hero-preview-card {

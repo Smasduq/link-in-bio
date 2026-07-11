@@ -1,0 +1,448 @@
+/* ── Finale CTA — cinematic full-width section (plain CSS) ── */
+
+.finale {
+  --finale-emerald: #10b981;
+  --finale-emerald-glow: rgba(16, 185, 129, 0.45);
+  --finale-dark: #041510;
+  --finale-glass: rgba(255, 255, 255, 0.1);
+  --finale-glass-border: rgba(255, 255, 255, 0.18);
+  --finale-text: #ffffff;
+  --finale-text-muted: rgba(255, 255, 255, 0.72);
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 100vh;
+  padding: 100px 20px 0;
+  color: var(--finale-text);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100vh;
+}
+
+/* ── Background ── */
+
+.finale__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.finale__bg-zoom {
+  position: absolute;
+  inset: -5%;
+  background-image: url("/images/finale/finale-bg.jpg");
+  background-size: cover;
+  background-position: center 45%;
+  background-repeat: no-repeat;
+  animation: finaleBgZoom 24s ease-in-out infinite alternate;
+}
+
+@media (max-width: 767px) {
+  .finale__bg-zoom {
+    background-image: url("/images/finale/mobile/finale-bg.jpg");
+    background-position: center 40%;
+  }
+}
+
+.finale__overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(4, 21, 16, 0.55) 0%, rgba(4, 21, 16, 0.82) 45%, rgba(4, 21, 16, 0.94) 100%),
+    radial-gradient(ellipse 70% 55% at 50% 40%, rgba(16, 185, 129, 0.18) 0%, transparent 65%);
+  backdrop-filter: blur(1px);
+}
+
+.finale__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  animation: finaleGlowPulse 8s ease-in-out infinite;
+}
+
+.finale__glow--1 {
+  width: 420px;
+  height: 420px;
+  top: 10%;
+  left: 15%;
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.finale__glow--2 {
+  width: 360px;
+  height: 360px;
+  bottom: 20%;
+  right: 10%;
+  background: rgba(52, 211, 153, 0.15);
+  animation-delay: -4s;
+}
+
+.finale__particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.finale__particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--finale-emerald);
+  opacity: 0.35;
+  box-shadow: 0 0 12px var(--finale-emerald-glow);
+  animation: finaleParticleDrift 12s ease-in-out infinite;
+}
+
+.finale__particle--1 { top: 12%; left: 8%; animation-duration: 14s; }
+.finale__particle--2 { top: 22%; left: 78%; animation-duration: 11s; animation-delay: -2s; }
+.finale__particle--3 { top: 45%; left: 15%; animation-duration: 16s; animation-delay: -5s; }
+.finale__particle--4 { top: 60%; left: 85%; animation-duration: 13s; animation-delay: -1s; }
+.finale__particle--5 { top: 75%; left: 25%; animation-duration: 15s; animation-delay: -7s; }
+.finale__particle--6 { top: 35%; left: 55%; animation-duration: 10s; animation-delay: -3s; }
+
+/* duplicate positions for extra particles */
+.finale__particle:nth-child(7) { top: 18%; left: 42%; animation-duration: 12s; opacity: 0.2; }
+.finale__particle:nth-child(8) { top: 52%; left: 68%; animation-duration: 17s; opacity: 0.25; }
+.finale__particle:nth-child(9) { top: 68%; left: 48%; animation-duration: 11s; opacity: 0.2; }
+.finale__particle:nth-child(10) { top: 28%; left: 92%; animation-duration: 14s; opacity: 0.15; }
+.finale__particle:nth-child(n+11) { display: none; }
+
+@media (min-width: 768px) {
+  .finale__particle:nth-child(n+11) { display: block; }
+  .finale__particle:nth-child(11) { top: 8%; left: 62%; animation-duration: 13s; opacity: 0.2; }
+  .finale__particle:nth-child(12) { top: 38%; left: 32%; animation-duration: 15s; opacity: 0.18; }
+  .finale__particle:nth-child(13) { top: 55%; left: 8%; animation-duration: 11s; opacity: 0.22; }
+  .finale__particle:nth-child(14) { top: 82%; left: 72%; animation-duration: 16s; opacity: 0.15; }
+  .finale__particle:nth-child(15) { top: 48%; left: 88%; animation-duration: 12s; opacity: 0.2; }
+  .finale__particle:nth-child(16) { top: 72%; left: 58%; animation-duration: 14s; opacity: 0.18; }
+  .finale__particle:nth-child(17) { top: 15%; left: 28%; animation-duration: 10s; opacity: 0.25; }
+  .finale__particle:nth-child(18) { top: 88%; left: 38%; animation-duration: 13s; opacity: 0.12; }
+}
+
+/* ── Center content ── */
+
+.finale__content {
+  position: relative;
+  z-index: 2;
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.finale__cta-block {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.finale--cta-visible .finale__cta-block {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.finale__headline {
+  margin: 0;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.finale__subheading {
+  margin: 20px auto 0;
+  max-width: 580px;
+  font-size: clamp(1rem, 2.5vw, 1.125rem);
+  line-height: 1.7;
+  color: var(--finale-text-muted);
+  text-wrap: balance;
+}
+
+.finale__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 36px;
+  align-items: center;
+}
+
+.finale__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 320px;
+  padding: 16px 28px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.finale__btn--primary {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 24px rgba(16, 185, 129, 0.4);
+}
+
+.finale__btn--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 36px rgba(16, 185, 129, 0.55);
+}
+
+.finale__btn--secondary {
+  background: transparent;
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.finale__btn--secondary:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+}
+
+.finale__btn:focus-visible {
+  outline: 2px solid var(--finale-emerald);
+  outline-offset: 3px;
+}
+
+.finale__trust {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 24px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finale__trust-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--finale-text-muted);
+}
+
+.finale__trust-check {
+  color: var(--finale-emerald);
+  font-weight: 700;
+}
+
+@media (min-width: 640px) {
+  .finale__actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .finale__btn {
+    width: auto;
+    min-width: 200px;
+  }
+}
+
+/* ── FAQ (below CTA) ── */
+
+.finale__faq {
+  margin-top: 72px;
+  padding-bottom: 80px;
+}
+
+.finale__faq-label {
+  margin: 0 0 24px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.finale__faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.finale__faq-card {
+  border-radius: 20px;
+  background: var(--finale-glass);
+  border: 1px solid var(--finale-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.finale__faq-card--open {
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 12px 40px rgba(16, 185, 129, 0.12);
+}
+
+.finale__faq-question {
+  margin: 0;
+}
+
+.finale__faq-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 20px 22px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--finale-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.finale__faq-trigger:hover {
+  color: var(--finale-emerald);
+}
+
+.finale__faq-trigger:focus-visible {
+  outline: 2px solid var(--finale-emerald);
+  outline-offset: -2px;
+  border-radius: 18px;
+}
+
+.finale__faq-icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.finale__faq-icon::before,
+.finale__faq-icon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--finale-emerald);
+  transform: translate(-50%, -50%);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.finale__faq-icon::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.finale__faq-card--open .finale__faq-icon::after {
+  transform: translate(-50%, -50%) rotate(0deg);
+  opacity: 0;
+}
+
+.finale__faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.35s ease, opacity 0.3s ease;
+}
+
+.finale__faq-card--open .finale__faq-panel {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.finale__faq-panel-inner {
+  overflow: hidden;
+}
+
+.finale__faq-panel-inner p {
+  margin: 0;
+  padding: 0 22px 20px;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--finale-text-muted);
+}
+
+/* ── Footer bridge ── */
+
+.finale__footer-bridge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 160px;
+  z-index: 3;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(4, 21, 16, 0.6) 40%,
+    #030f0c 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Page footer (paired) ── */
+
+.finale-footer {
+  position: relative;
+  padding: 48px 20px 40px;
+  background: #030f0c;
+  border-top: none;
+  text-align: center;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.finale-footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(200px, 40%);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.4), transparent);
+}
+
+/* ── Animations ── */
+
+@keyframes finaleBgZoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.06); }
+}
+
+@keyframes finaleGlowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes finaleParticleDrift {
+  0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+  50% { transform: translate(12px, -20px); opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finale__bg-zoom,
+  .finale__glow {
+    animation: none !important;
+  }
+
+  .finale__cta-block {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .finale__btn:hover {
+    transform: none;
+  }
+}
