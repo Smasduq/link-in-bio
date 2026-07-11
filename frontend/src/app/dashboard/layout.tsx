@@ -12,6 +12,7 @@ import { Profile } from "@/types/database";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
+import "@/styles/dashboard-overview.css";
 
 const nav = [
   { name: "Overview", icon: LayoutDashboard, path: "/dashboard" },
@@ -103,8 +104,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 pb-24 md:p-8 md:pb-8">
-          <div className="mx-auto max-w-4xl animate-fade-in">{children}</div>
+        <main
+          className={cn(
+            "flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 md:p-8 md:pb-8",
+            pathname === "/dashboard" && "bg-[#F5F7FA] dark:bg-[#0f1419]"
+          )}
+        >
+          <div className={cn("mx-auto animate-fade-in", pathname === "/dashboard" ? "max-w-[1280px]" : "max-w-4xl")}>
+            {children}
+          </div>
         </main>
 
         <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border bg-card/95 backdrop-blur-xl md:hidden">

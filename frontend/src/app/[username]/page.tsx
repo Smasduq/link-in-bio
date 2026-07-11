@@ -2,9 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import type { Metadata } from "next";
-import { Globe, Sparkles } from "lucide-react";
+import { Globe } from "lucide-react";
 import { detectPlatform } from "@/lib/social";
 import { getLinkButtonStyle, normalizeTheme } from "@/lib/profile-theme";
+import { ClaimUsernameState } from "@/components/public/claim-username-state";
 import { ProfileThemeShell } from "@/components/public/profile-theme-shell";
 import { TrackedProfileLink } from "@/components/public/tracked-profile-link";
 import type { PublicProfile, ThemeSettings } from "@/types/database";
@@ -84,37 +85,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: "View this creator's links on LinkBio.",
     };
   }
-}
-
-function ClaimUsernameCTA({ username }: { username: string }) {
-  const handle = username.toLowerCase();
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary px-4 py-12">
-      <div className="w-full max-w-[480px] rounded-2xl border border-border bg-card p-8 text-center shadow-card">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-          <Sparkles className="h-7 w-7" aria-hidden />
-        </div>
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Username available</p>
-        <h1 className="mt-2 font-display text-2xl font-bold text-foreground">@{handle}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          No one has claimed this page yet. Create your free LinkBio and make it yours in under a minute.
-        </p>
-        <Link
-          href={`/sign-up?username=${encodeURIComponent(handle)}`}
-          className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-        >
-          Claim this username
-        </Link>
-        <p className="mt-4 text-xs text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/sign-in" className="font-semibold text-emerald-600 hover:underline dark:text-emerald-400">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
 }
 
 function ProfileErrorState() {
@@ -270,7 +240,7 @@ export default async function ProfilePage({ params }: PageProps) {
     const profile = await fetchProfile(params.username);
 
     if (!profile) {
-      return <ClaimUsernameCTA username={params.username} />;
+      return <ClaimUsernameState username={params.username} />;
     }
 
     return <ProfileContent profile={profile} />;

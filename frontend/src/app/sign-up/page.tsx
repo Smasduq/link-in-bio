@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import OtpInput from "@/components/auth/OtpInput";
@@ -9,7 +10,12 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export default function SignUpPage() {
+function normalizeUsername(value: string) {
+  return value.toLowerCase().replace(/^@/, "").trim();
+}
+
+function SignUpForm() {
+  const searchParams = useSearchParams();
   const { requestRegisterOtp, verifyRegisterOtp, resendOtp } = useAuth();
   const [step, setStep] = useState<"credentials" | "otp">("credentials");
   const [email, setEmail] = useState("");
@@ -21,6 +27,13 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const prefill = searchParams.get("username");
+    if (prefill) {
+      setUsername(normalizeUsername(prefill));
+    }
+  }, [searchParams]);
 
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +77,8 @@ export default function SignUpPage() {
     }
   };
 
+  const claimedUsername = normalizeUsername(searchParams.get("username") || username);
+
   if (step === "otp") {
     return (
       <AuthShell title="Verify your email" subtitle={`We sent a 6-digit code to ${maskedEmail}`}>
@@ -94,7 +109,14 @@ export default function SignUpPage() {
   }
 
   return (
-    <AuthShell title="Create account" subtitle="Join LinkBio and share your brand">
+    <AuthShell
+      title="Create account"
+      subtitle={
+        searchParams.get("username")
+          ? `Claim @${claimedUsername} on LinkBio`
+          : "Join LinkBio and share your brand"
+      }
+    >
       {error && <p className="mb-4 text-center text-sm text-destructive">{error}</p>}
       <form onSubmit={handleCredentials} className="space-y-4">
         <Input label="Username" type="text" placeholder="johndoe" value={username} onChange={(e) => setUsername(e.target.value)} required />
@@ -106,5 +128,13 @@ export default function SignUpPage() {
         Already have an account? <Link href="/sign-in" className="font-semibold text-primary hover:underline">Sign In</Link>
       </p>
     </AuthShell>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<AuthShell title="Create account" subtitle="Loading…" />}>
+      <SignUpForm />
+    </Suspense>
   );
 }
