@@ -15,7 +15,7 @@ function SignInForm() {
   const searchParams = useSearchParams();
   const { user, loading: authLoading, login, verifyLoginOtp, resendOtp } = useAuth();
   const [step, setStep] = useState<"credentials" | "otp">("credentials");
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [challengeId, setChallengeId] = useState("");
@@ -41,7 +41,7 @@ function SignInForm() {
     setLoading(true);
     setError(null);
     try {
-      const data = await login(email, password);
+      const data = await login(identifier, password);
 
       if (!data.requires_otp) {
         return;
@@ -124,7 +124,15 @@ function SignInForm() {
     <AuthShell title="Welcome back" subtitle="Sign in to your LinkBio dashboard">
       {error && <p className="mb-4 text-center text-sm text-destructive">{error}</p>}
       <form onSubmit={handleCredentials} className="space-y-4">
-        <Input label="Email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <Input
+          label="Email or username"
+          type="text"
+          placeholder="name@example.com or yourname"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          autoComplete="username"
+          required
+        />
         <Input label="Password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
         <div className="text-right">
           <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">Forgot password?</Link>

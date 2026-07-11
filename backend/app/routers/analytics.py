@@ -70,6 +70,8 @@ def get_analytics(
             )
         )
 
+    link_analytics.sort(key=lambda item: item.click_count, reverse=True)
+
     daily_stats: list[DailyStat] = []
     for days_ago in range(6, -1, -1):
         day_start = (datetime.now(timezone.utc) - timedelta(days=days_ago)).replace(

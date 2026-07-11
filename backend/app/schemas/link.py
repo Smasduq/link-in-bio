@@ -13,6 +13,7 @@ class LinkUpdate(BaseModel):
     url: str | None = Field(default=None, min_length=1)
     icon: str | None = Field(default=None, max_length=500)
     position: int | None = None
+    is_featured: bool | None = None
     is_active: bool | None = None
 
 
@@ -23,6 +24,7 @@ class LinkResponse(BaseModel):
     url: str
     icon: str | None = None
     position: int
+    is_featured: bool
     click_count: int
     is_active: bool
     created_at: datetime

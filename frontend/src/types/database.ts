@@ -1,7 +1,15 @@
+export type BackgroundType = "solid" | "gradient" | "image";
+
+export type ButtonStyle = "rounded" | "square" | "outline" | "filled";
+
+export type FontPreset = "inter" | "dm-sans" | "playfair" | "space-grotesk" | "outfit";
+
+/** Stored as `theme_settings` JSON on the profile record in the API/DB. */
 export type ThemeSettings = {
+  backgroundType: BackgroundType;
   background: string;
-  buttonStyle: "rounded" | "sharp" | "outline" | "rounded-lg";
-  fontFamily: string;
+  buttonStyle: ButtonStyle;
+  fontFamily: FontPreset;
   accentColor: string;
 };
 
@@ -24,6 +32,7 @@ export type Link = {
   url: string;
   icon: string | null;
   position: number;
+  is_featured: boolean;
   click_count: number;
   is_active: boolean;
   created_at: string;

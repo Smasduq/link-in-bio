@@ -1,14 +1,44 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ThemeSettings(BaseModel):
+    backgroundType: Literal["solid", "gradient", "image"] = "solid"
     background: str = "#0a0a0f"
-    buttonStyle: Literal["rounded", "sharp", "outline", "rounded-lg"] = "rounded-lg"
-    fontFamily: str = "dm-sans"
+    buttonStyle: Literal["rounded", "square", "outline", "filled"] = "filled"
+    fontFamily: Literal["inter", "dm-sans", "playfair", "space-grotesk", "outfit"] = "dm-sans"
     accentColor: str = "#6366f1"
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_legacy(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+
+        normalized = dict(data)
+        legacy_style = normalized.get("buttonStyle")
+        if legacy_style == "sharp":
+            normalized["buttonStyle"] = "square"
+        elif legacy_style == "rounded-lg":
+            normalized["buttonStyle"] = "rounded"
+
+        if "backgroundType" not in normalized:
+            bg = str(normalized.get("background", ""))
+            if bg.lower().startswith(("http://", "https://")):
+                normalized["backgroundType"] = "image"
+            elif "gradient(" in bg.lower():
+                normalized["backgroundType"] = "gradient"
+            else:
+                normalized["backgroundType"] = "solid"
+
+        font = normalized.get("fontFamily")
+        allowed = {"inter", "dm-sans", "playfair", "space-grotesk", "outfit"}
+        if font not in allowed:
+            normalized["fontFamily"] = "dm-sans"
+
+        return normalized
 
 
 class ProfileResponse(BaseModel):

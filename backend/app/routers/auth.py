@@ -135,9 +135,9 @@ def login_request(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    user = authenticate_user(db, payload.email, payload.password)
+    user = authenticate_user(db, payload.login_identifier, payload.password)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email, username, or password")
 
     if user.is_email_verified:
         auth = _auth_response(user)

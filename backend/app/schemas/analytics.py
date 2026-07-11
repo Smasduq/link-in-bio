@@ -33,9 +33,7 @@ class AnalyticsResponse(BaseModel):
 
 class TrackViewRequest(BaseModel):
     referrer: str | None = None
-    user_agent: str | None = None
 
 
 class TrackClickRequest(BaseModel):
     referrer: str | None = None
-    user_agent: str | None = None

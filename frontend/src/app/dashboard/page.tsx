@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { AnalyticsResponse, Link as LinkType, Profile } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LinkClicksStats } from "@/components/dashboard/link-clicks-stats";
 import { PageLoader } from "@/components/ui/spinner";
 
 export default function DashboardOverviewPage() {
@@ -132,6 +133,8 @@ export default function DashboardOverviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      {analytics && <LinkClicksStats links={analytics.links} />}
 
       {profile?.username && (
         <Card className="border-emerald-200/60 bg-emerald-50/30 dark:border-emerald-900 dark:bg-emerald-950/20">

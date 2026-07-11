@@ -7,8 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 DEFAULT_THEME = {
+    "backgroundType": "solid",
     "background": "#0a0a0f",
-    "buttonStyle": "rounded-lg",
+    "buttonStyle": "filled",
     "fontFamily": "dm-sans",
     "accentColor": "#6366f1",
 }

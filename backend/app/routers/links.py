@@ -6,9 +6,17 @@ from app.dependencies import get_current_user
 from app.models.link import Link
 from app.models.user import User
 from app.schemas.link import LinkCreate, LinkReorderRequest, LinkResponse, LinkUpdate
+from app.schemas.analytics import TrackClickRequest
 from app.services.auth import get_favicon_url
+from app.services.click_tracking import record_link_click
 
 router = APIRouter(prefix="/links", tags=["links"])
+
+
+@router.post("/{link_id}/click", status_code=status.HTTP_204_NO_CONTENT)
+def track_link_click(link_id: str, payload: TrackClickRequest, db: Session = Depends(get_db)):
+    """Public click tracking — no auth; increments click_count and logs referrer + timestamp."""
+    record_link_click(db, link_id, payload.referrer)
 
 
 @router.get("", response_model=list[LinkResponse])
