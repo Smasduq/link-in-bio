@@ -20,6 +20,9 @@ FREE_FONTS = frozenset({"Inter", "DM Sans"})
 
 FREE_PRODUCT_LIMIT = 1
 
+FREE_ANALYTICS_HISTORY_DAYS = 1
+PREMIUM_ANALYTICS_HISTORY_DAYS = 7
+
 PREMIUM_PRESET_IDS = frozenset(
     {
         "midnight-glass",

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   BarChart3,
@@ -41,6 +42,7 @@ import {
   periodTrend,
   sparklinePoints,
 } from "@/lib/dashboard-utils";
+import { canAccessAnalyticsPeriod, isAnalyticsPeriodPro } from "@/lib/premium-features";
 import { getBackgroundStyle, getLinkButtonStyle, normalizeTheme } from "@/lib/profile-theme";
 import { SITE_NAME } from "@/lib/site";
 import { ProUpgradeCta } from "@/components/billing/pro-upgrade-cta";
@@ -156,12 +158,18 @@ function AnalyticsChart({
   data,
   period,
   onPeriodChange,
+  isPremium,
 }: {
   data: AnalyticsResponse["daily_stats"];
   period: DashboardPeriod;
   onPeriodChange: (p: DashboardPeriod) => void;
+  isPremium: boolean;
 }) {
-  const filtered = useMemo(() => filterChartData(data, period), [data, period]);
+  const router = useRouter();
+  const filtered = useMemo(() => {
+    const safePeriod = canAccessAnalyticsPeriod(period, isPremium) ? period : "today";
+    return filterChartData(data, safePeriod);
+  }, [data, period, isPremium]);
   const width = 640;
   const height = 200;
   const padding = { top: 16, right: 12, bottom: 28, left: 12 };
@@ -207,18 +215,30 @@ function AnalyticsChart({
       </div>
 
       <div className="lb-analytics__tabs" role="tablist" aria-label="Analytics period">
-        {PERIODS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            role="tab"
-            aria-selected={period === p.id}
-            className={`lb-analytics__tab ${period === p.id ? "is-active" : ""}`}
-            onClick={() => onPeriodChange(p.id)}
-          >
-            {p.label}
-          </button>
-        ))}
+        {PERIODS.map((p) => {
+          const locked = !isPremium && isAnalyticsPeriodPro(p.id);
+          return (
+            <button
+              key={p.id}
+              type="button"
+              role="tab"
+              aria-selected={period === p.id}
+              aria-disabled={locked}
+              title={locked ? "Upgrade to Pro for 7, 30 & 90 day analytics" : undefined}
+              className={`lb-analytics__tab ${period === p.id ? "is-active" : ""}${locked ? " lb-analytics__tab--locked" : ""}`}
+              onClick={() => {
+                if (locked) {
+                  router.push("/upgrade");
+                  return;
+                }
+                onPeriodChange(p.id);
+              }}
+            >
+              {p.label}
+              {locked ? <span className="lb-analytics__pro-badge">Pro</span> : null}
+            </button>
+          );
+        })}
       </div>
 
       <div className="lb-analytics__legend">
@@ -363,9 +383,9 @@ function TopLinkRow({ link, index }: { link: ReturnType<typeof buildTopLinks>[nu
 }
 
 export function DashboardOverview({ profile, links, analytics }: DashboardOverviewProps) {
-  const [period, setPeriod] = useState<DashboardPeriod>("7d");
-  const [search, setSearch] = useState("");
   const isPremium = Boolean(profile.is_premium);
+  const [period, setPeriod] = useState<DashboardPeriod>(isPremium ? "7d" : "today");
+  const [search, setSearch] = useState("");
 
   const overview = analytics.overview;
   const viewSpark = analytics.daily_stats.map((d) => d.page_views);
@@ -542,19 +562,12 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
 
         {/* Analytics + Phone */}
         <section className="lb-section lb-grid lb-grid--2">
-          {isPremium ? (
-            <AnalyticsChart data={analytics.daily_stats} period={period} onPeriodChange={setPeriod} />
-          ) : (
-            <div className="lb-card">
-              <div className="lb-card__body">
-                <ProUpgradeCta
-                  title="7-day analytics chart"
-                  description="Track daily views and clicks over time with Pro."
-                  className="border-0 bg-transparent p-0"
-                />
-              </div>
-            </div>
-          )}
+          <AnalyticsChart
+            data={analytics.daily_stats}
+            period={period}
+            onPeriodChange={setPeriod}
+            isPremium={isPremium}
+          />
           <PhonePreview profile={profile} links={links} />
         </section>
 

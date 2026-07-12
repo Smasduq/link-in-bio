@@ -19,6 +19,61 @@ const INSIGHT_TABS = [
 
 type InsightTab = (typeof INSIGHT_TABS)[number]["id"];
 
+function DailyChart({
+  data,
+  title,
+}: {
+  data: AnalyticsResponse["daily_stats"];
+  title: string;
+}) {
+  const maxDaily = Math.max(...data.map((d) => Math.max(d.page_views, d.link_clicks)), 1);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 shrink-0 text-emerald-600 md:h-5 md:w-5" /> {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {data.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">No activity yet for this period.</p>
+        ) : (
+          <>
+            <div className="flex h-32 items-end gap-1.5 md:h-44 md:gap-2">
+              {data.map((day) => (
+                <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                  <div className="flex h-24 w-full items-end gap-0.5 md:h-36">
+                    <div
+                      className="flex-1 rounded-t-md bg-emerald-500 transition-all duration-300 hover:bg-emerald-600"
+                      style={{ height: `${(day.page_views / maxDaily) * 100}%`, minHeight: day.page_views ? 4 : 0 }}
+                      title={`${day.page_views} views`}
+                    />
+                    <div
+                      className="flex-1 rounded-t-md bg-emerald-300 transition-all duration-300 hover:bg-emerald-400"
+                      style={{ height: `${(day.link_clicks / maxDaily) * 100}%`, minHeight: day.link_clicks ? 4 : 0 }}
+                      title={`${day.link_clicks} clicks`}
+                    />
+                  </div>
+                  <span className="truncate text-[10px] text-muted-foreground">{day.date.slice(5)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground md:gap-6">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" /> Views
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm bg-emerald-300" /> Clicks
+              </span>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [isPremium, setIsPremium] = useState(false);
@@ -37,11 +92,11 @@ export default function AnalyticsPage() {
   if (loading) return <PageLoader />;
   if (!data) return <p className="text-muted-foreground">Failed to load analytics</p>;
 
-  const maxDaily = Math.max(...data.daily_stats.map((d) => Math.max(d.page_views, d.link_clicks)), 1);
   const ctr = data.overview.total_page_views
     ? ((data.overview.total_link_clicks / data.overview.total_page_views) * 100).toFixed(1)
     : "0.0";
   const hasTraffic = data.overview.total_page_views > 0;
+  const periodHint = isPremium ? "this week" : "today";
 
   return (
     <div className="min-w-0 space-y-6">
@@ -52,8 +107,8 @@ export default function AnalyticsPage() {
 
       {!isPremium ? (
         <ProUpgradeCta
-          title="Unlock advanced analytics"
-          description="Pro includes unique visitors, 7-day trends, referrer breakdown, and visitor insights by region, device, and active time."
+          title="Unlock 7, 30 & 90 day analytics"
+          description="Free includes today&apos;s stats. Upgrade for weekly and monthly trends, unique visitors, referrers, and visitor insights."
         />
       ) : null}
 
@@ -71,61 +126,26 @@ export default function AnalyticsPage() {
               icon={Eye}
               value={data.overview.total_page_views}
               label="Total views"
-              hint={isPremium ? `+${data.overview.views_last_7_days} this week` : "7-day trends on Pro"}
+              hint={`+${data.overview.views_last_7_days} ${periodHint}`}
             />
             <InsightStatCard
               icon={MousePointer}
               value={data.overview.total_link_clicks}
               label="Total clicks"
-              hint={isPremium ? `+${data.overview.clicks_last_7_days} this week` : "7-day trends on Pro"}
+              hint={`+${data.overview.clicks_last_7_days} ${periodHint}`}
             />
             <InsightStatCard icon={TrendingUp} value={`${ctr}%`} label="Click-through rate" />
             <InsightStatCard icon={BarChart2} value={data.links.length} label="Tracked links" />
           </div>
 
-          {isPremium ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 shrink-0 text-emerald-600 md:h-5 md:w-5" /> Last 7 days
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex h-32 items-end gap-1.5 md:h-44 md:gap-2">
-                  {data.daily_stats.map((day) => (
-                    <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                      <div className="flex h-24 w-full items-end gap-0.5 md:h-36">
-                        <div
-                          className="flex-1 rounded-t-md bg-emerald-500 transition-all duration-300 hover:bg-emerald-600"
-                          style={{ height: `${(day.page_views / maxDaily) * 100}%`, minHeight: day.page_views ? 4 : 0 }}
-                          title={`${day.page_views} views`}
-                        />
-                        <div
-                          className="flex-1 rounded-t-md bg-emerald-300 transition-all duration-300 hover:bg-emerald-400"
-                          style={{ height: `${(day.link_clicks / maxDaily) * 100}%`, minHeight: day.link_clicks ? 4 : 0 }}
-                          title={`${day.link_clicks} clicks`}
-                        />
-                      </div>
-                      <span className="truncate text-[10px] text-muted-foreground">{day.date.slice(5)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground md:gap-6">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" /> Views
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-emerald-300" /> Clicks
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
+          <DailyChart data={data.daily_stats} title={isPremium ? "Last 7 days" : "Today"} />
+
+          {!isPremium ? (
             <ProUpgradeCta
-              title="7-day performance chart"
-              description="See daily views and clicks over the last week with Pro."
+              title="See the full picture over time"
+              description="Upgrade to compare 7, 30, and 90 day performance and spot trends."
             />
-          )}
+          ) : null}
 
           <Card>
             <CardHeader>
@@ -155,7 +175,7 @@ export default function AnalyticsPage() {
                       <div className="shrink-0 text-right">
                         <p className="text-sm font-semibold text-emerald-600">{link.click_count}</p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {isPremium ? `+${link.clicks_last_7_days} wk` : "Pro for weekly"}
+                          +{link.clicks_last_7_days} {periodHint}
                         </p>
                       </div>
                     </div>

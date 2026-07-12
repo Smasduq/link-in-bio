@@ -1,6 +1,7 @@
 import { THEME_PRESETS } from "@/lib/theme-presets";
 import type { BillingStatus } from "@/lib/plans";
 import type { BackgroundType, ThemeSettings } from "@/types/database";
+import type { DashboardPeriod } from "@/lib/dashboard-utils";
 
 /** Mirrors backend/app/services/premium_access.py */
 
@@ -12,6 +13,11 @@ export const PRO_ONLY_BUTTON_STYLES = new Set<ThemeSettings["buttonStyle"]>(["gl
 
 export const FREE_FONTS = new Set(["Inter", "DM Sans"]);
 export const FREE_PRODUCT_LIMIT = 1;
+
+export const FREE_ANALYTICS_HISTORY_DAYS = 1;
+export const PREMIUM_ANALYTICS_HISTORY_DAYS = 7;
+
+export const PRO_ONLY_ANALYTICS_PERIODS = new Set(["7d", "30d", "90d", "all"] as const);
 export const PREMIUM_PRESET_IDS = new Set(THEME_PRESETS.map((preset) => preset.id));
 
 export function isPremiumActive(billing: BillingStatus | null | undefined): boolean {
@@ -24,6 +30,15 @@ export function isPremiumFromProfile(profile: { is_premium?: boolean } | null | 
 
 export function canAddProduct(isPremium: boolean, productCount: number): boolean {
   return isPremium || productCount < FREE_PRODUCT_LIMIT;
+}
+
+export function canAccessAnalyticsPeriod(period: DashboardPeriod, isPremium: boolean): boolean {
+  if (isPremium) return true;
+  return period === "today";
+}
+
+export function isAnalyticsPeriodPro(period: DashboardPeriod): boolean {
+  return PRO_ONLY_ANALYTICS_PERIODS.has(period);
 }
 
 export function isPresetPro(presetId: string | undefined | null): boolean {

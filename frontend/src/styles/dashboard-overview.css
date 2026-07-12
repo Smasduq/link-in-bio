@@ -646,6 +646,21 @@
   color: #fff;
 }
 
+.lb-analytics__tab--locked {
+  opacity: 0.72;
+}
+
+.lb-analytics__pro-badge {
+  margin-left: 0.25rem;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.15);
+  padding: 0.05rem 0.35rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #b45309;
+  vertical-align: middle;
+}
+
 .lb-analytics__legend {
   display: flex;
   gap: 1.25rem;
