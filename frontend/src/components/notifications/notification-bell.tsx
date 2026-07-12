@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { type NotificationListResponse } from "@/lib/notifications";
 import { NotificationListItem } from "@/components/notifications/notification-list-item";
+import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<NotificationListResponse | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
+  const [desktopCoords, setDesktopCoords] = useState<{ top: number; right: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const load = () =>
     apiFetch<NotificationListResponse>("/api/notifications?page=1&page_size=8")
@@ -18,16 +23,46 @@ export function NotificationBell() {
       .catch(() => undefined);
 
   useEffect(() => {
+    setMounted(true);
     load();
   }, []);
 
   useEffect(() => {
     if (!open) return;
-    const close = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+
+    const updateDesktopCoords = () => {
+      if (!buttonRef.current || window.innerWidth < 768) {
+        setDesktopCoords(null);
+        return;
+      }
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDesktopCoords({
+        top: rect.bottom + 8,
+        right: Math.max(12, window.innerWidth - rect.right),
+      });
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+
+    updateDesktopCoords();
+    window.addEventListener("resize", updateDesktopCoords);
+    window.addEventListener("scroll", updateDesktopCoords, true);
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const closeOnOutside = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutside);
+
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("resize", updateDesktopCoords);
+      window.removeEventListener("scroll", updateDesktopCoords, true);
+      document.removeEventListener("pointerdown", closeOnOutside);
+    };
   }, [open]);
 
   const markRead = async (id: string) => {
@@ -41,15 +76,85 @@ export function NotificationBell() {
 
   const unread = data?.unread_count ?? 0;
 
+  const panel =
+    open && mounted
+      ? createPortal(
+          <>
+            <button
+              type="button"
+              aria-label="Close notifications"
+              className="fixed inset-0 z-[70] bg-black/30 md:bg-transparent"
+              onClick={() => setOpen(false)}
+            />
+
+            <div
+              ref={panelRef}
+              className={cn(
+                "fixed z-[80] flex flex-col overflow-hidden border border-border bg-card shadow-lg",
+                "inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] max-h-[min(55vh,18rem)] rounded-xl",
+                "md:inset-x-auto md:bottom-auto md:w-72 md:max-h-80 lg:w-80"
+              )}
+              style={
+                desktopCoords
+                  ? { top: desktopCoords.top, right: desktopCoords.right }
+                  : undefined
+              }
+            >
+              <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2.5 md:px-4 md:py-3">
+                <p className="text-sm font-semibold">Notifications</p>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/dashboard/notifications"
+                    className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                    onClick={() => setOpen(false)}
+                  >
+                    View all
+                  </Link>
+                  <button
+                    type="button"
+                    aria-label="Close"
+                    onClick={() => setOpen(false)}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary md:hidden"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                {data?.items.length ? (
+                  data.items.map((item) => (
+                    <NotificationListItem
+                      key={item.id}
+                      item={item}
+                      compact
+                      onMarkRead={markRead}
+                    />
+                  ))
+                ) : (
+                  <p className="px-3 py-5 text-sm text-muted-foreground md:px-4 md:py-6">
+                    No notifications yet.
+                  </p>
+                )}
+              </div>
+            </div>
+          </>,
+          document.body
+        )
+      : null;
+
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
+        ref={buttonRef}
         type="button"
         aria-label="Notifications"
         aria-expanded={open}
         onClick={() => {
-          setOpen((value) => !value);
-          if (!open) load();
+          setOpen((value) => {
+            const next = !value;
+            if (next) load();
+            return next;
+          });
         }}
         className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:text-foreground"
       >
@@ -60,35 +165,7 @@ export function NotificationBell() {
           </span>
         ) : null}
       </button>
-
-      {open ? (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <p className="text-sm font-semibold">Notifications</p>
-            <Link
-              href="/dashboard/notifications"
-              className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
-              onClick={() => setOpen(false)}
-            >
-              View all
-            </Link>
-          </div>
-          <div className="max-h-80 overflow-y-auto">
-            {data?.items.length ? (
-              data.items.map((item) => (
-                <NotificationListItem
-                  key={item.id}
-                  item={item}
-                  compact
-                  onMarkRead={markRead}
-                />
-              ))
-            ) : (
-              <p className="px-4 py-6 text-sm text-muted-foreground">No notifications yet.</p>
-            )}
-          </div>
-        </div>
-      ) : null}
-    </div>
+      {panel}
+    </>
   );
 }
