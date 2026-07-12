@@ -8,6 +8,7 @@ import { formatNgn, type Product } from "@/lib/products";
 import { canAddProduct, isPremiumFromProfile } from "@/lib/premium-features";
 import type { Profile } from "@/types/database";
 import { ProUpgradeCta } from "@/components/billing/pro-upgrade-cta";
+import { useUpgradeAfterSave } from "@/components/billing/upgrade-prompt-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import { PageLoader } from "@/components/ui/spinner";
 export function ProductsEditor() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isPremium, setIsPremium] = useState(false);
+  const promptUpgrade = useUpgradeAfterSave(isPremium);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -64,6 +66,7 @@ export function ProductsEditor() {
       }
       setProducts((current) => [updated, ...current]);
       setModalOpen(false);
+      promptUpgrade("product");
       setForm({ title: "", description: "", price: "" });
       setCoverFile(null);
       setDeliverableFile(null);

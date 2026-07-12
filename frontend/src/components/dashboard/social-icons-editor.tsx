@@ -20,6 +20,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Share2, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { isPremiumFromProfile } from "@/lib/premium-features";
+import type { Profile } from "@/types/database";
+import { useUpgradeAfterSave } from "@/components/billing/upgrade-prompt-provider";
 import {
   MAX_SOCIAL_LINKS,
   SOCIAL_PLATFORMS,
@@ -89,6 +92,8 @@ function SortableSocialItem({
 
 export function SocialIconsEditor() {
   const [links, setLinks] = useState<SocialLink[]>([]);
+  const [isPremium, setIsPremium] = useState(false);
+  const promptUpgrade = useUpgradeAfterSave(isPremium);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -108,9 +113,10 @@ export function SocialIconsEditor() {
   const selectedPlatform = getSocialPlatform(draftPlatform);
 
   useEffect(() => {
-    apiFetch<SocialLink[]>("/api/social-links")
-      .then(setLinks)
-      .finally(() => setLoading(false));
+    Promise.all([
+      apiFetch<SocialLink[]>("/api/social-links").then(setLinks),
+      apiFetch<Profile>("/api/profile").then((p) => setIsPremium(isPremiumFromProfile(p))),
+    ]).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -155,6 +161,7 @@ export function SocialIconsEditor() {
     try {
       await persistLinks(nextLinks);
       setDraftUrl("");
+      promptUpgrade("social");
     } catch {
       // error shown via state
     }

@@ -21,6 +21,7 @@ import type { BackgroundType, Profile, ThemeSettings } from "@/types/database";
 import { ProfileLivePreview } from "@/components/dashboard/profile-live-preview";
 import { ThemePresetPicker } from "@/components/dashboard/theme-preset-picker";
 import { ProUpgradeCta } from "@/components/billing/pro-upgrade-cta";
+import { useUpgradeAfterSave } from "@/components/billing/upgrade-prompt-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ export default function AppearancePage() {
   const [message, setMessage] = useState("");
   const [username, setUsername] = useState("username");
   const [isPremium, setIsPremium] = useState(false);
+  const promptUpgrade = useUpgradeAfterSave(isPremium);
   const [theme, setTheme] = useState<ThemeSettings>(normalizeTheme(undefined));
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export default function AppearancePage() {
     try {
       await apiFetch("/api/profile", { method: "PATCH", body: JSON.stringify({ theme_settings: theme }) });
       setMessage("Theme saved!");
+      promptUpgrade("theme");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to save theme");
     } finally {

@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { Save } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { Profile } from "@/types/database";
+import { isPremiumFromProfile } from "@/lib/premium-features";
 import { SettingsBillingLink } from "@/components/billing/settings-billing-link";
+import { useUpgradeAfterSave } from "@/components/billing/upgrade-prompt-provider";
 import { EmailCaptureSection } from "@/components/dashboard/email-capture-section";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [isPremium, setIsPremium] = useState(false);
+  const promptUpgrade = useUpgradeAfterSave(isPremium);
   const [profile, setProfile] = useState({
     username: "",
     bio: "",
@@ -38,6 +42,7 @@ export default function SettingsPage() {
           email_capture_enabled: data.email_capture_enabled ?? false,
           email_capture_heading: data.email_capture_heading || "Join my newsletter",
         });
+        setIsPremium(isPremiumFromProfile(data));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -56,6 +61,7 @@ export default function SettingsPage() {
         }),
       });
       setMessage({ type: "success", text: "Profile updated successfully!" });
+      promptUpgrade("profile");
     } catch (err: unknown) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Update failed" });
     } finally {
@@ -112,13 +118,14 @@ export default function SettingsPage() {
             <AvatarUpload
               avatarUrl={profile.avatar_url || null}
               avatarPublicId={profile.avatar_public_id || null}
-              onUploaded={({ avatarUrl, avatarPublicId }) =>
+              onUploaded={({ avatarUrl, avatarPublicId }) => {
                 setProfile((current) => ({
                   ...current,
                   avatar_url: avatarUrl,
                   avatar_public_id: avatarPublicId,
-                }))
-              }
+                }));
+                promptUpgrade("avatar");
+              }}
             />
             <Input label="Display Name" value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} placeholder="Your name" />
             <Textarea label="Bio" rows={4} placeholder="Tell your story..." value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} />

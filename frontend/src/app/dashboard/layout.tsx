@@ -27,6 +27,7 @@ import {
   type DashboardNavItem,
 } from "@/components/dashboard/dashboard-nav";
 import { MoreBottomSheet } from "@/components/dashboard/more-bottom-sheet";
+import { UpgradePromptProvider } from "@/components/billing/upgrade-prompt-provider";
 import { PageLoader } from "@/components/ui/spinner";
 import "@/styles/dashboard-overview.css";
 
@@ -267,7 +268,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Actions */}
-          <div className="flex shrink-0 items-center gap-2 md:gap-3">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2 md:gap-3">
             {publicUrl && (
               <a
                 href={publicUrl}
@@ -275,35 +276,18 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 rel="noopener noreferrer"
                 aria-label="View my page"
                 className={cn(
-                  "hidden items-center justify-center rounded-xl text-emerald-700 transition hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300",
-                  "md:inline-flex md:h-10 md:w-10 md:border md:border-border md:bg-card md:shadow-sm md:hover:border-emerald-400/50",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40",
+                  "md:h-10 md:w-10 md:rounded-xl md:border md:border-border md:bg-card md:text-emerald-700 md:shadow-sm md:hover:border-emerald-400/50 md:dark:text-emerald-400",
                   "xl:h-auto xl:w-auto xl:gap-1.5 xl:px-3 xl:py-2 xl:text-sm xl:font-medium"
                 )}
               >
-                <ExternalLink className="h-4 w-4 shrink-0" />
+                <ExternalLink className="h-4 w-4 shrink-0 md:h-4" />
                 <span className="hidden xl:inline">View my page</span>
               </a>
             )}
 
-            <div className="hidden md:flex md:items-center md:gap-2">
-              <NotificationBell />
-              <AvatarMenu profile={profile} email={user?.email} onLogout={logout} />
-            </div>
-
-            {/* Mobile single action */}
-            {publicUrl ? (
-              <a
-                href={publicUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40 md:hidden"
-                aria-label="View my page"
-              >
-                <ExternalLink className="h-5 w-5" />
-              </a>
-            ) : (
-              <div className="h-10 w-10 md:hidden" aria-hidden />
-            )}
+            <NotificationBell />
+            <AvatarMenu profile={profile} email={user?.email} onLogout={logout} />
           </div>
         </header>
 
@@ -317,7 +301,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         >
           <div className="mx-auto w-full animate-fade-in xl:max-w-[1100px]">
             <BillingAlertBanner />
-            {children}
+            <UpgradePromptProvider>{children}</UpgradePromptProvider>
           </div>
         </main>
       </div>

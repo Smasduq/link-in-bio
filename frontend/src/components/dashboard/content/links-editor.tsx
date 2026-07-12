@@ -12,7 +12,9 @@ import {
   Eye, EyeOff, GripVertical, Link as LinkIcon, Music2, Pencil, Play, Plus, Trash2,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { Link, LinkType } from "@/types/database";
+import { isPremiumFromProfile } from "@/lib/premium-features";
+import { Link, LinkType, Profile } from "@/types/database";
+import { useUpgradeAfterSave } from "@/components/billing/upgrade-prompt-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -85,6 +87,8 @@ export function LinksEditor() {
   const [showEmbedModal, setShowEmbedModal] = useState(false);
   const [editingLink, setEditingLink] = useState<Link | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
+  const [isPremium, setIsPremium] = useState(false);
+  const promptUpgrade = useUpgradeAfterSave(isPremium);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({ title: "", url: "" });
@@ -99,7 +103,9 @@ export function LinksEditor() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  useEffect(() => { fetchLinks(); }, []);
+  useEffect(() => {
+    Promise.all([fetchLinks(), apiFetch<Profile>("/api/profile").then((p) => setIsPremium(isPremiumFromProfile(p)))]);
+  }, []);
 
   const fetchLinks = async () => {
     try {
@@ -177,12 +183,14 @@ export function LinksEditor() {
           body: JSON.stringify({ ...formData, type: "link" }),
         });
         setLinks(links.map((l) => (l.id === updated.id ? updated : l)));
+        promptUpgrade("link");
       } else {
         const added = await apiFetch<Link>("/api/links", {
           method: "POST",
           body: JSON.stringify({ ...formData, type: "link" }),
         });
         setLinks([...links, added]);
+        promptUpgrade("link");
       }
       setShowLinkModal(false);
     } finally {
@@ -209,12 +217,14 @@ export function LinksEditor() {
           body: JSON.stringify(payload),
         });
         setLinks(links.map((l) => (l.id === updated.id ? updated : l)));
+        promptUpgrade("embed");
       } else {
         const added = await apiFetch<Link>("/api/links", {
           method: "POST",
           body: JSON.stringify(payload),
         });
         setLinks([...links, added]);
+        promptUpgrade("embed");
       }
       setShowEmbedModal(false);
     } finally {
