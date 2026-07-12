@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Save } from "lucide-react";
+import { Crown, Save } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { Profile } from "@/types/database";
+import { type BillingStatus, formatNgn } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
@@ -13,16 +15,23 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [profile, setProfile] = useState({ username: "", bio: "", avatar_url: "", full_name: "" });
 
   useEffect(() => {
-    apiFetch<Profile>("/api/profile")
-      .then((data) => setProfile({
-        username: data.username,
-        bio: data.bio || "",
-        avatar_url: data.avatar_url || "",
-        full_name: data.full_name || "",
-      }))
+    Promise.all([
+      apiFetch<Profile>("/api/profile"),
+      apiFetch<BillingStatus>("/api/billing/status").catch(() => null),
+    ])
+      .then(([data, billingStatus]) => {
+        setProfile({
+          username: data.username,
+          bio: data.bio || "",
+          avatar_url: data.avatar_url || "",
+          full_name: data.full_name || "",
+        });
+        setBilling(billingStatus);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -48,6 +57,36 @@ export default function SettingsPage() {
         <h1 className="font-display text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">Manage your profile and public information</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-emerald-600" />
+            Billing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold capitalize">{billing?.is_premium ? `${billing.plan} · Pro` : "Free plan"}</p>
+              {billing?.is_premium && billing.premium_until ? (
+                <p className="text-sm text-muted-foreground">
+                  Active until {new Date(billing.premium_until).toLocaleDateString()}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Pro from {formatNgn(billing?.monthly_amount_ngn ?? 2500)}/mo
+                </p>
+              )}
+            </div>
+            {!billing?.is_premium ? (
+              <Link href="/upgrade">
+                <Button>Upgrade to Pro</Button>
+              </Link>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

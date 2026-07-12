@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     # Default fallback: backend/app/services/GeoLite2-Country.mmdb
     geolite2_country_path: str = ""
 
+    # Paystack billing
+    paystack_secret_key: str = ""
+    paystack_public_key: str = ""
+    paystack_monthly_amount_ngn: int = 2500
+    paystack_yearly_amount_ngn: int = 24000
+
+    @property
+    def paystack_configured(self) -> bool:
+        return bool(self.paystack_secret_key and self.paystack_public_key)
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
