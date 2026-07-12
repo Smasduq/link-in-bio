@@ -1,7 +1,29 @@
 from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock, patch
 
 from app.models.user import User
-from app.services.billing import get_current_user_premium_status
+from app.services.billing import (
+    get_current_user_premium_status,
+    handle_paystack_event,
+    mark_subscription_cancelled,
+    mark_subscription_past_due,
+    sync_subscription_access,
+)
+
+
+def _user(**kwargs) -> User:
+    defaults = {
+        "email": "pro@example.com",
+        "password_hash": "hash",
+        "is_premium": True,
+        "premium_plan": "monthly",
+        "premium_period_end": datetime.now(timezone.utc) + timedelta(days=20),
+        "paystack_subscription_code": "SUB_123",
+        "paystack_email_token": "tok_abc",
+        "subscription_status": "active",
+    }
+    defaults.update(kwargs)
+    return User(**defaults)
 
 
 def test_premium_status_false_when_flag_off():
@@ -34,3 +56,91 @@ def test_premium_status_true_when_active():
     status = get_current_user_premium_status(user)
     assert status["is_premium"] is True
     assert status["plan"] == "yearly"
+
+
+def test_cancelled_subscription_keeps_access_until_period_end():
+    user = _user(
+        subscription_status="cancelled",
+        premium_period_end=datetime.now(timezone.utc) + timedelta(days=5),
+    )
+    db = MagicMock()
+    status = get_current_user_premium_status(user, db)
+    assert status["is_premium"] is True
+    assert status["is_cancelled_pending_expiry"] is True
+
+
+def test_cancelled_subscription_downgrades_after_period_end():
+    user = _user(
+        subscription_status="cancelled",
+        premium_period_end=datetime.now(timezone.utc) - timedelta(minutes=1),
+    )
+    db = MagicMock()
+    status = get_current_user_premium_status(user, db)
+    assert status["is_premium"] is False
+    assert user.subscription_status == "expired"
+    assert user.is_premium is False
+
+
+def test_invoice_payment_failed_marks_past_due_without_immediate_downgrade():
+    user = _user(premium_period_end=datetime.now(timezone.utc) + timedelta(days=10))
+    db = MagicMock()
+    with patch("app.services.billing._find_user_for_event", return_value=user):
+        handle_paystack_event(
+            db,
+            {
+                "event": "invoice.payment_failed",
+                "data": {
+                    "subscription_code": "SUB_123",
+                    "customer": {"email": user.email},
+                },
+            },
+        )
+
+    assert user.subscription_status == "past_due"
+    assert user.is_premium is True
+    assert user.premium_grace_until is not None
+    assert user.premium_grace_until > user.premium_period_end
+
+
+def test_past_due_downgrades_after_grace_period():
+    user = _user(
+        subscription_status="past_due",
+        premium_period_end=datetime.now(timezone.utc) - timedelta(days=1),
+        premium_grace_until=datetime.now(timezone.utc) - timedelta(minutes=1),
+    )
+    db = MagicMock()
+    sync_subscription_access(db, user)
+    assert user.is_premium is False
+    assert user.subscription_status == "expired"
+
+
+def test_subscription_disable_marks_cancelled_not_immediate_downgrade():
+    user = _user()
+    db = MagicMock()
+    with patch("app.services.billing._find_user_for_event", return_value=user):
+        handle_paystack_event(
+            db,
+            {
+                "event": "subscription.disable",
+                "data": {"subscription_code": "SUB_123", "customer": {"email": user.email}},
+            },
+        )
+
+    assert user.subscription_status == "cancelled"
+    assert user.is_premium is True
+
+
+def test_cancel_subscription_helper_keeps_premium_flag():
+    user = _user()
+    db = MagicMock()
+    mark_subscription_cancelled(db, user)
+    assert user.subscription_status == "cancelled"
+    assert user.is_premium is True
+
+
+def test_mark_past_due_sets_grace_window():
+    user = _user(premium_period_end=datetime.now(timezone.utc) + timedelta(days=4))
+    db = MagicMock()
+    mark_subscription_past_due(db, user)
+    assert user.subscription_status == "past_due"
+    assert user.premium_grace_until is not None

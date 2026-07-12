@@ -147,6 +147,9 @@ def _migrate_users_billing_schema(conn, is_sqlite: bool) -> None:
             ("premium_period_end", "ALTER TABLE users ADD COLUMN premium_period_end DATETIME"),
             ("paystack_subscription_code", "ALTER TABLE users ADD COLUMN paystack_subscription_code VARCHAR(255)"),
             ("paystack_customer_code", "ALTER TABLE users ADD COLUMN paystack_customer_code VARCHAR(255)"),
+            ("paystack_email_token", "ALTER TABLE users ADD COLUMN paystack_email_token VARCHAR(255)"),
+            ("subscription_status", "ALTER TABLE users ADD COLUMN subscription_status VARCHAR(20)"),
+            ("premium_grace_until", "ALTER TABLE users ADD COLUMN premium_grace_until DATETIME"),
             ("last_paystack_reference", "ALTER TABLE users ADD COLUMN last_paystack_reference VARCHAR(255)"),
         ]
         for column, ddl in additions:
@@ -166,6 +169,9 @@ def _migrate_users_billing_schema(conn, is_sqlite: bool) -> None:
         ("premium_period_end", "ALTER TABLE users ADD COLUMN premium_period_end TIMESTAMPTZ"),
         ("paystack_subscription_code", "ALTER TABLE users ADD COLUMN paystack_subscription_code VARCHAR(255)"),
         ("paystack_customer_code", "ALTER TABLE users ADD COLUMN paystack_customer_code VARCHAR(255)"),
+        ("paystack_email_token", "ALTER TABLE users ADD COLUMN paystack_email_token VARCHAR(255)"),
+        ("subscription_status", "ALTER TABLE users ADD COLUMN subscription_status VARCHAR(20)"),
+        ("premium_grace_until", "ALTER TABLE users ADD COLUMN premium_grace_until TIMESTAMPTZ"),
         ("last_paystack_reference", "ALTER TABLE users ADD COLUMN last_paystack_reference VARCHAR(255)"),
     ):
         row = conn.execute(

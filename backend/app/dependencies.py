@@ -32,8 +32,12 @@ def get_current_user(
     return user
 
 
-def require_active_premium(user: User = Depends(get_current_user)) -> User:
-    status_info = get_current_user_premium_status(user)
+def require_active_premium(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    status_info = get_current_user_premium_status(user, db)
+    db.commit()
     if not status_info["is_premium"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

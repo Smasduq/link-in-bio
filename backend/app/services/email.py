@@ -1,6 +1,7 @@
 import logging
 import smtplib
 import ssl
+from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -127,3 +128,24 @@ def send_otp_email(*, to: str, otp: str, purpose: str) -> tuple[bool, str | None
         html_body=html,
         text_body=f"Your {SITE_NAME} verification code is {otp}. Use it to {action}. It expires in {settings.otp_expire_minutes} minutes.",
     )
+
+
+def send_payment_failed_email(*, to: str, grace_until: datetime, plan: str) -> bool:
+    grace_text = grace_until.astimezone(timezone.utc).strftime("%B %d, %Y")
+    billing_url = f"{settings.frontend_url.rstrip('/')}/dashboard/settings"
+    html = f"""
+    <p>Hi,</p>
+    <p>We couldn't renew your {SITE_NAME} Pro ({plan}) subscription.</p>
+    <p>Your Pro access continues until <strong>{grace_text}</strong>. Update your payment method or resubscribe from settings before then to avoid losing access.</p>
+    <p><a href="{billing_url}">Manage billing</a></p>
+    """
+    sent, _ = send_email(
+        to=to,
+        subject=f"Action needed — {SITE_NAME} payment failed",
+        html_body=html,
+        text_body=(
+            f"We couldn't renew your {SITE_NAME} Pro subscription. "
+            f"Access continues until {grace_text}. Manage billing: {billing_url}"
+        ),
+    )
+    return sent

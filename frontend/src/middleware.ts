@@ -24,5 +24,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/upgrade"],
+  matcher: ["/dashboard/:path*", "/upgrade", "/billing/result"],
 };

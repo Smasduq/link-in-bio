@@ -20,6 +20,9 @@ class User(Base):
     premium_period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     paystack_subscription_code: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     paystack_customer_code: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    paystack_email_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    subscription_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    premium_grace_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_paystack_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

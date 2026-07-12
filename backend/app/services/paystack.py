@@ -143,3 +143,44 @@ async def initialize_transaction(
         raise RuntimeError(message)
 
     return data["data"], plan_record
+
+
+async def verify_transaction(reference: str) -> dict[str, Any]:
+    """Verify a transaction with Paystack — never trust client-side redirects alone."""
+    response = await _paystack_request("GET", f"/transaction/verify/{reference}")
+    payload = response.json()
+    if response.status_code >= 400 or not payload.get("status"):
+        message = payload.get("message", "Paystack transaction verification failed")
+        logger.error("Paystack verify error: %s — %s", response.status_code, message)
+        raise RuntimeError(message)
+
+    data = payload.get("data") or {}
+    raw_status = (data.get("status") or "failed").lower()
+    if raw_status == "success":
+        status = "success"
+    elif raw_status == "abandoned":
+        status = "abandoned"
+    else:
+        status = "failed"
+
+    return {
+        "status": status,
+        "reference": data.get("reference") or reference,
+        "gateway_response": data.get("gateway_response"),
+        "amount": data.get("amount"),
+        "paid_at": data.get("paid_at"),
+        "data": data,
+    }
+
+
+async def disable_paystack_subscription(*, subscription_code: str, email_token: str) -> None:
+    response = await _paystack_request(
+        "POST",
+        "/subscription/disable",
+        json={"code": subscription_code, "token": email_token},
+    )
+    payload = response.json()
+    if response.status_code >= 400 or not payload.get("status"):
+        message = payload.get("message", "Paystack subscription disable failed")
+        logger.error("Paystack disable error: %s — %s", response.status_code, message)
+        raise RuntimeError(message)

@@ -43,10 +43,27 @@ class InitializeBillingResponse(BaseModel):
     pricing: FeeBreakdown
 
 
+class VerifyTransactionResponse(BaseModel):
+    status: Literal["success", "failed", "abandoned"]
+    reference: str
+    gateway_response: str | None = None
+    is_premium: bool = False
+    premium_until: datetime | None = None
+
+
+class CancelBillingResponse(BaseModel):
+    subscription_status: Literal["cancelled"]
+    premium_until: datetime | None = None
+    message: str
+
+
 class BillingStatusResponse(BaseModel):
     plan: str
     is_premium: bool
     premium_until: datetime | None = None
+    subscription_status: str | None = None
+    can_cancel: bool = False
+    is_cancelled_pending_expiry: bool = False
     monthly_base_amount_ngn: float | None = None
     yearly_base_amount_ngn: float | None = None
     yearly_savings_percent: float | None = None

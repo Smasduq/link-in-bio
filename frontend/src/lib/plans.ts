@@ -59,11 +59,28 @@ export type BillingStatus = {
   plan: string;
   is_premium: boolean;
   premium_until: string | null;
+  subscription_status: string | null;
+  can_cancel: boolean;
+  is_cancelled_pending_expiry: boolean;
   monthly_base_amount_ngn: number | null;
   yearly_base_amount_ngn: number | null;
   yearly_savings_percent: number | null;
   yearly_savings_amount: number | null;
   paystack_public_key: string | null;
+};
+
+export type VerifyTransactionResponse = {
+  status: "success" | "failed" | "abandoned";
+  reference: string;
+  gateway_response: string | null;
+  is_premium: boolean;
+  premium_until: string | null;
+};
+
+export type CancelBillingResponse = {
+  subscription_status: "cancelled";
+  premium_until: string | null;
+  message: string;
 };
 
 export type InitializeBillingResponse = {

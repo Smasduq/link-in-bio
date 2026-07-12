@@ -70,9 +70,9 @@ export default function UpgradePage() {
         amount: init.pricing.total_charge_kobo,
         reference: init.reference,
         access_code: init.access_code,
-        onSuccess: () => {
-          setPaymentState("success");
-          apiFetch<BillingStatus>("/api/billing/status").then(setBilling).catch(() => undefined);
+        onSuccess: (response?: { reference?: string }) => {
+          const ref = response?.reference ?? init.reference;
+          router.push(`/billing/result?reference=${encodeURIComponent(ref)}`);
         },
         onCancel: () => {
           setPaymentState("idle");
@@ -82,13 +82,13 @@ export default function UpgradePage() {
       setPaymentState("error");
       setErrorMessage(err instanceof Error ? err.message : "Payment could not be started");
     }
-  }, [plan, user]);
+  }, [plan, router, user]);
 
   const selectedPlan = planPricing.find((item) => item.slug === plan);
   const yearlyPlan = planPricing.find((item) => item.slug === "yearly");
   const yearlySavingsPercent = yearlyPlan?.yearly_savings_percent ?? billing?.yearly_savings_percent ?? 15;
   const yearlySavingsAmount = yearlyPlan?.yearly_savings_amount ?? billing?.yearly_savings_amount ?? null;
-  const isPro = billing?.is_premium ?? false;
+  const isPro = Boolean(billing?.is_premium && billing.subscription_status !== "cancelled");
 
   if (authLoading || !user) {
     return (
