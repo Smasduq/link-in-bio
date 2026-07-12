@@ -22,7 +22,7 @@ export function LinkClicksStats({ links }: LinkClicksStatsProps) {
           Clicks by link
         </CardTitle>
         <Link href="/dashboard/analytics" className="text-sm font-medium text-emerald-600 hover:underline">
-          Full analytics
+          Full insights
         </Link>
       </CardHeader>
       <CardContent>

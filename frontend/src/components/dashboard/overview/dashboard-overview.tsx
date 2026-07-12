@@ -66,33 +66,35 @@ function RippleButton({
   variant = "secondary",
   onClick,
   external,
+  className,
 }: {
   href?: string;
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "ghost";
   onClick?: () => void;
   external?: boolean;
+  className?: string;
 }) {
   const ripple = useRipple();
-  const className = `lb-btn lb-btn--${variant}`;
+  const classes = `lb-btn lb-btn--${variant}${className ? ` ${className}` : ""}`;
 
   if (href) {
     if (external) {
       return (
-        <a href={href} target="_blank" rel="noopener noreferrer" className={className} onClick={ripple}>
+        <a href={href} target="_blank" rel="noopener noreferrer" className={classes} onClick={ripple}>
           {children}
         </a>
       );
     }
     return (
-      <Link href={href} className={className} onClick={ripple}>
+      <Link href={href} className={classes} onClick={ripple}>
         {children}
       </Link>
     );
   }
 
   return (
-    <button type="button" className={className} onClick={(e) => { ripple(e); onClick?.(); }}>
+    <button type="button" className={classes} onClick={(e) => { ripple(e); onClick?.(); }}>
       {children}
     </button>
   );
@@ -574,10 +576,12 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
 
         {/* Completion + Quick actions row */}
         <section className="lb-section lb-grid lb-grid--2">
-          <article className="lb-card" ref={completionRef as React.RefObject<HTMLElement>}>
-            <div className="lb-card__body">
-              <h2 className="lb-section__title">Profile completion</h2>
-              <p className="lb-completion__pct">{completionAnimated}%</p>
+          <article className="lb-card lb-completion" ref={completionRef as React.RefObject<HTMLElement>}>
+            <div className="lb-card__body lb-completion__body">
+              <div className="lb-completion__header">
+                <h2 className="lb-section__title lb-completion__title">Profile completion</h2>
+                <p className="lb-completion__pct">{completionAnimated}%</p>
+              </div>
               <div className="lb-completion__track">
                 <div className="lb-completion__fill" style={{ width: completionVisible ? `${completionPct}%` : "0%" }} />
               </div>
@@ -587,11 +591,15 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
                     <span className={`lb-completion__check ${item.done ? "lb-completion__check--done" : "lb-completion__check--todo"}`}>
                       {item.done ? "✓" : ""}
                     </span>
-                    {item.label}
+                    <span className="lb-completion__label">{item.label}</span>
                   </li>
                 ))}
               </ul>
-              <RippleButton href={checklist.find((c) => !c.done)?.href ?? "/dashboard/settings"} variant="primary">
+              <RippleButton
+                href={checklist.find((c) => !c.done)?.href ?? "/dashboard/settings"}
+                variant="primary"
+                className="lb-completion__cta"
+              >
                 Complete now
               </RippleButton>
             </div>
