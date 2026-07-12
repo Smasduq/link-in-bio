@@ -23,9 +23,7 @@ def _utcnow() -> datetime:
 
 
 def send_transactional_email(*, to: str, subject: str, html_body: str, text_body: str) -> None:
-    sent, error = send_email(to=to, subject=subject, html_body=html_body, text_body=text_body)
-    if not sent:
-        raise RuntimeError(error or "Email send failed")
+    send_email(to=to, subject=subject, html_body=html_body)
 
 
 def has_recent_notification(

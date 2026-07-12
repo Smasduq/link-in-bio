@@ -10,6 +10,7 @@ import {
   usesLightShellOverlay,
 } from "@/lib/profile-theme";
 import { ProfileThemeShell } from "@/components/public/profile-theme-shell";
+import { ThemeBlockPreviews } from "@/components/dashboard/theme-block-previews";
 import { cn } from "@/lib/utils";
 
 type ProfileLivePreviewProps = {
@@ -28,7 +29,7 @@ export function ProfileLivePreview({
   const theme = normalizeTheme(rawTheme);
 
   return (
-    <ProfileThemeShell theme={theme} className={cn(compact ? "min-h-[280px] px-4 py-6" : "min-h-[420px] px-6 py-8", className)}>
+    <ProfileThemeShell theme={theme} className={cn(compact ? "min-h-[520px] px-4 py-6" : "min-h-[620px] px-6 py-8", className)}>
       <div className="mx-auto flex w-full max-w-[280px] flex-col items-center text-center">
         <div
           className="profile-avatar-ring mb-4 h-16 w-16 rounded-full border-4 bg-white/10"
@@ -48,6 +49,7 @@ export function ProfileLivePreview({
             Example link
           </div>
         </div>
+        <ThemeBlockPreviews theme={theme} compact={compact} />
       </div>
     </ProfileThemeShell>
   );

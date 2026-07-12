@@ -71,3 +71,15 @@ class BillingStatusResponse(BaseModel):
     yearly_savings_percent: float | None = None
     yearly_savings_amount: float | None = None
     paystack_public_key: str | None = None
+
+
+class BillingHistoryItem(BaseModel):
+    reference: str
+    paid_at: datetime
+    amount_ngn: float
+    status: str
+    plan: str | None = None
+
+
+class BillingHistoryResponse(BaseModel):
+    items: list[BillingHistoryItem]

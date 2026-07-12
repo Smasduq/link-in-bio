@@ -15,6 +15,7 @@ NOTIFICATION_TYPES = (
     "access_expiring",
     "access_expired",
     "resubscribed",
+    "product_sale",
 )
 
 

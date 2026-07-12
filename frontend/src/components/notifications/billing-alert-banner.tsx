@@ -42,7 +42,7 @@ export function BillingAlertBanner() {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-amber-950 dark:text-amber-100">{notification.message}</p>
         <div className="mt-2 flex flex-wrap gap-2">
-          <Link href="/dashboard/settings">
+          <Link href="/dashboard/settings/billing">
             <Button size="sm" variant="outline">
               Manage billing
             </Button>

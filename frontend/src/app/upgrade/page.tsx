@@ -22,7 +22,8 @@ import {
   type PlanPricingItem,
   type PlanPricingResponse,
   formatNgn,
-  PLAN_FEATURES,
+  FEATURES,
+  PRO_UPGRADE_HIGHLIGHT,
 } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
@@ -112,7 +113,7 @@ export default function UpgradePage() {
           </div>
           <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Upgrade to Pro</h1>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Unlock premium themes, advanced analytics, and every customization tool — built for creators who want more from their page.
+            {PRO_UPGRADE_HIGHLIGHT}
           </p>
         </div>
 
@@ -165,7 +166,7 @@ export default function UpgradePage() {
                 subtitle="Forever"
                 cta="Current plan"
                 disabled
-                features={PLAN_FEATURES.map((f) => ({ label: f.label, included: Boolean(f.free) }))}
+                features={FEATURES.map((f) => ({ label: f.label, included: Boolean(f.free) }))}
               />
               <PlanCard
                 title="Pro"
@@ -183,7 +184,7 @@ export default function UpgradePage() {
                 cta={paymentState === "loading" ? "Opening Paystack…" : "Upgrade Now"}
                 loading={paymentState === "loading"}
                 onCta={openPaystack}
-                features={PLAN_FEATURES.map((f) => ({ label: f.label, included: true }))}
+                features={FEATURES.map((f) => ({ label: f.label, included: true }))}
               />
             </div>
 

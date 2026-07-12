@@ -9,6 +9,8 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.billing import (
+    BillingHistoryItem,
+    BillingHistoryResponse,
     BillingStatusResponse,
     CancelBillingResponse,
     FeeBreakdown,
@@ -20,12 +22,14 @@ from app.schemas.billing import (
 )
 from app.services.billing import (
     apply_verified_transaction,
+    billing_history_payload,
     billing_status_payload,
     get_current_user_premium_status,
     handle_paystack_event,
     mark_subscription_cancelled,
 )
 from app.services.notifications import has_recent_notification, notify_user
+from app.services.product_purchases import process_product_purchase_webhook
 from app.services.paystack import disable_paystack_subscription, initialize_transaction, verify_paystack_signature
 from app.services.paystack import verify_transaction as verify_paystack_transaction
 from app.services.plan_catalog import plan_pricing_payload
@@ -203,6 +207,16 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload") from exc
 
     try:
+        event_type = event.get("event")
+        data = event.get("data") or {}
+        reference = data.get("reference") or data.get("transaction_reference")
+        metadata = data.get("metadata") or {}
+
+        if event_type == "charge.success" and metadata.get("product_id"):
+            await process_product_purchase_webhook(db, reference)
+            db.commit()
+            return {"status": "ok"}
+
         handle_paystack_event(db, event)
         db.commit()
     except Exception:
@@ -219,3 +233,9 @@ def billing_status(user: User = Depends(get_current_user), db: Session = Depends
     db.commit()
     payload["paystack_public_key"] = settings.paystack_public_key if settings.paystack_configured else None
     return BillingStatusResponse(**payload)
+
+
+@router.get("/history", response_model=BillingHistoryResponse)
+def billing_history(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    items = [BillingHistoryItem(**item) for item in billing_history_payload(db, user.id)]
+    return BillingHistoryResponse(items=items)

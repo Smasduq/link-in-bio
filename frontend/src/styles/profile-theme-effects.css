@@ -29,20 +29,42 @@
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.35));
 }
 
-.profile-theme-root[data-signature-effect="frosted-blur"] .profile-link {
+.profile-theme-root[data-signature-effect="frosted-blur"] .profile-link,
+.profile-theme-root[data-signature-effect="frosted-blur"] .profile-surface,
+.profile-theme-root[data-signature-effect="frosted-blur"] .profile-block {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
-.profile-theme-root[data-preset-id="neon-grid"] .profile-link {
+.profile-theme-root[data-preset-id="neon-grid"] .profile-link,
+.profile-theme-root[data-preset-id="neon-grid"] .profile-surface {
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     transform 0.2s ease;
 }
 
+.profile-theme-root[data-preset-id="neon-grid"] .profile-product-card {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.profile-theme-root[data-preset-id="neon-grid"] .profile-product-card:hover {
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.28), 0 0 0 1px var(--profile-accent);
+}
+
+.profile-theme-root[data-preset-id="neon-grid"] .profile-youtube-embed {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 0, 51, 0.12);
+}
+
+.profile-theme-root[data-preset-id="neon-grid"] .profile-spotify-embed {
+  border-color: rgba(29, 185, 84, 0.45) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 14px rgba(29, 185, 84, 0.18);
+}
+
 .profile-theme-root[data-preset-id="neon-grid"] .profile-link:hover,
-.profile-theme-root[data-preset-id="neon-grid"] .profile-link:focus-visible {
+.profile-theme-root[data-preset-id="neon-grid"] .profile-link:focus-visible,
+.profile-theme-root[data-preset-id="neon-grid"] .profile-surface:hover {
   border-color: transparent !important;
   background:
     linear-gradient(#150e27, #150e27) padding-box,

@@ -23,17 +23,40 @@ export type ThemeSettings = {
   presetId?: string;
 };
 
+export type SocialLink = {
+  platform:
+    | "instagram"
+    | "tiktok"
+    | "twitter"
+    | "youtube"
+    | "facebook"
+    | "linkedin"
+    | "whatsapp"
+    | "telegram"
+    | "email";
+  url: string;
+  position: number;
+};
+
 export type Profile = {
   id: string;
   user_id: string;
   username: string;
   full_name: string | null;
   avatar_url: string | null;
+  avatar_public_id?: string | null;
+  social_links?: SocialLink[];
   bio: string | null;
   theme_settings: ThemeSettings;
+  email_capture_enabled?: boolean;
+  email_capture_heading?: string | null;
+  announcement_enabled?: boolean;
+  announcement_text?: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export type LinkType = "link" | "youtube_embed" | "spotify_embed";
 
 export type Link = {
   id: string;
@@ -43,9 +66,12 @@ export type Link = {
   icon: string | null;
   position: number;
   is_featured: boolean;
+  type: LinkType;
   click_count: number;
   is_active: boolean;
   created_at: string;
+  embed_src?: string | null;
+  embed_height?: number | null;
 };
 
 export type AnalyticsOverview = {
@@ -101,6 +127,12 @@ export type PublicProfile = {
   full_name: string | null;
   bio: string | null;
   avatar_url: string | null;
+  avatar_public_id?: string | null;
+  social_links: SocialLink[];
+  products?: import("@/lib/products").PublicProduct[];
+  email_capture_enabled?: boolean;
+  email_capture_heading?: string | null;
+  announcement_text?: string | null;
   theme_settings: ThemeSettings;
   links: Link[];
 };

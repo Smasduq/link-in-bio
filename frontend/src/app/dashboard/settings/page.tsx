@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Save } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { Profile } from "@/types/database";
-import { BillingSection } from "@/components/billing/billing-section";
+import { SettingsBillingLink } from "@/components/billing/settings-billing-link";
+import { EmailCaptureSection } from "@/components/dashboard/email-capture-section";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,15 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
-  const [profile, setProfile] = useState({ username: "", bio: "", avatar_url: "", full_name: "" });
+  const [profile, setProfile] = useState({
+    username: "",
+    bio: "",
+    avatar_url: "",
+    avatar_public_id: "",
+    full_name: "",
+    email_capture_enabled: false,
+    email_capture_heading: "Join my newsletter",
+  });
 
   useEffect(() => {
     apiFetch<Profile>("/api/profile")
@@ -24,7 +33,10 @@ export default function SettingsPage() {
           username: data.username,
           bio: data.bio || "",
           avatar_url: data.avatar_url || "",
+          avatar_public_id: data.avatar_public_id || "",
           full_name: data.full_name || "",
+          email_capture_enabled: data.email_capture_enabled ?? false,
+          email_capture_heading: data.email_capture_heading || "Join my newsletter",
         });
       })
       .finally(() => setLoading(false));
@@ -60,7 +72,19 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground">Manage your profile and public information</p>
       </div>
 
-      <BillingSection />
+      <SettingsBillingLink />
+
+      <EmailCaptureSection
+        enabled={profile.email_capture_enabled}
+        heading={profile.email_capture_heading}
+        onChange={({ enabled, heading }) =>
+          setProfile((current) => ({
+            ...current,
+            email_capture_enabled: enabled,
+            email_capture_heading: heading,
+          }))
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -87,7 +111,14 @@ export default function SettingsPage() {
             </div>
             <AvatarUpload
               avatarUrl={profile.avatar_url || null}
-              onUploaded={(avatarUrl) => setProfile((current) => ({ ...current, avatar_url: avatarUrl }))}
+              avatarPublicId={profile.avatar_public_id || null}
+              onUploaded={({ avatarUrl, avatarPublicId }) =>
+                setProfile((current) => ({
+                  ...current,
+                  avatar_url: avatarUrl,
+                  avatar_public_id: avatarPublicId,
+                }))
+              }
             />
             <Input label="Display Name" value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} placeholder="Your name" />
             <Textarea label="Bio" rows={4} placeholder="Tell your story..." value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} />

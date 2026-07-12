@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ExternalLink,
@@ -17,26 +17,35 @@ import { BillingAlertBanner } from "@/components/notifications/billing-alert-ban
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { resolveAvatarUrl } from "@/lib/avatar";
+import { cn } from "@/lib/utils";
 import {
-  dashboardNav,
+  dashboardSidebarNav,
   getDashboardPageTitle,
   isDashboardNavActive,
+  isMoreSectionActive,
+  mobileBottomNav,
+  type DashboardNavItem,
 } from "@/components/dashboard/dashboard-nav";
+import { MoreBottomSheet } from "@/components/dashboard/more-bottom-sheet";
+import { PageLoader } from "@/components/ui/spinner";
 import "@/styles/dashboard-overview.css";
 
 function NavLink({
   item,
   active,
   variant,
+  onMorePress,
 }: {
-  item: (typeof dashboardNav)[number];
+  item: DashboardNavItem;
   active: boolean;
   variant: "sidebar" | "tab";
+  onMorePress?: () => void;
 }) {
   if (variant === "sidebar") {
+    const href = item.contentTab ? `${item.path}?tab=${item.contentTab}` : item.path;
     return (
       <Link
-        href={item.path}
+        href={href}
         aria-label={item.name}
         className={cn(
           "group relative flex items-center rounded-xl text-sm font-medium transition-all duration-200",
@@ -62,6 +71,31 @@ function NavLink({
     );
   }
 
+  if (item.action === "more-sheet") {
+    return (
+      <button
+        type="button"
+        onClick={onMorePress}
+        className={cn(
+          "flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-semibold leading-tight transition-colors",
+          active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+        )}
+        aria-label="More options"
+        aria-expanded={active}
+      >
+        <span
+          className={cn(
+            "flex flex-col items-center justify-center rounded-xl px-2 py-0.5",
+            active && "bg-emerald-50 dark:bg-emerald-950/40"
+          )}
+        >
+          <item.icon className={cn("h-5 w-5 shrink-0", active && "text-emerald-600 dark:text-emerald-400")} />
+          <span className="max-w-full truncate">{item.shortName ?? item.name}</span>
+        </span>
+      </button>
+    );
+  }
+
   return (
     <Link
       href={item.path}
@@ -70,8 +104,15 @@ function NavLink({
         active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
       )}
     >
-      <item.icon className={cn("h-5 w-5 shrink-0", active && "text-emerald-600 dark:text-emerald-400")} />
-      <span className="max-w-full truncate">{item.shortName ?? item.name}</span>
+      <span
+        className={cn(
+          "flex flex-col items-center justify-center rounded-xl px-2 py-0.5",
+          active && "bg-emerald-50 dark:bg-emerald-950/40"
+        )}
+      >
+        <item.icon className={cn("h-5 w-5 shrink-0", active && "text-emerald-600 dark:text-emerald-400")} />
+        <span className="max-w-full truncate">{item.shortName ?? item.name}</span>
+      </span>
     </Link>
   );
 }
@@ -146,29 +187,44 @@ function AvatarMenu({
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><PageLoader /></div>}>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </Suspense>
+  );
+}
+
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     apiFetch<Profile>("/api/profile").then(setProfile).catch(() => setProfile(null));
   }, []);
 
-  const pageTitle = getDashboardPageTitle(pathname);
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
+
+  const pageTitle = getDashboardPageTitle(pathname, searchParams);
   const publicUrl = profile?.username ? `/${profile.username}` : null;
   const isRootDashboard = pathname === "/dashboard";
+  const moreTabActive = moreOpen || isMoreSectionActive(pathname);
 
   return (
     <div className="min-h-screen bg-secondary/40">
       {/* Desktop / tablet sidebar — icon-only md→lg, full labels at xl+ */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[72px] flex-col overflow-visible border-r border-border bg-card md:flex xl:w-60">
         <nav className="flex-1 space-y-1 overflow-y-auto p-2 pt-5 xl:p-3" aria-label="Dashboard">
-          {dashboardNav.map((item) => (
+          {dashboardSidebarNav.map((item) => (
             <NavLink
-              key={item.path}
+              key={`${item.path}-${item.contentTab ?? item.name}`}
               item={item}
-              active={isDashboardNavActive(pathname, item.path)}
+              active={isDashboardNavActive(pathname, item, searchParams)}
               variant="sidebar"
             />
           ))}
@@ -266,22 +322,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
 
-      {/* Mobile bottom tab bar */}
+      {/* Mobile bottom tab bar — 5 items */}
       <nav
         className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom,0px)] md:hidden"
         aria-label="Dashboard navigation"
       >
         <div className="flex">
-          {dashboardNav.map((item) => (
+          {mobileBottomNav.map((item) => (
             <NavLink
-              key={item.path}
+              key={item.name}
               item={item}
-              active={isDashboardNavActive(pathname, item.path)}
+              active={
+                item.action === "more-sheet"
+                  ? moreTabActive
+                  : isDashboardNavActive(pathname, item, searchParams)
+              }
               variant="tab"
+              onMorePress={() => setMoreOpen(true)}
             />
           ))}
         </div>
       </nav>
+
+      <MoreBottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
     </div>
   );
 }

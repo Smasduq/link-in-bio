@@ -1,0 +1,69 @@
+from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+class ProductCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=2000)
+    price: float = Field(gt=0, le=10_000_000)
+
+
+class ProductUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=2000)
+    price: float | None = Field(default=None, gt=0, le=10_000_000)
+    is_active: bool | None = None
+
+
+class ProductResponse(BaseModel):
+    id: str
+    profile_id: str
+    title: str
+    description: str | None = None
+    price: float
+    total_charge: float
+    cover_image_url: str | None = None
+    file_name: str
+    is_active: bool
+    sales_count: int = 0
+    revenue: float = 0
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PublicProductResponse(BaseModel):
+    id: str
+    title: str
+    description: str | None = None
+    price: float
+    total_charge: float
+    cover_image_url: str | None = None
+    file_name: str
+
+
+class PurchaseInitializeRequest(BaseModel):
+    buyer_email: EmailStr
+
+
+class PurchaseInitializeResponse(BaseModel):
+    access_code: str
+    reference: str
+    authorization_url: str
+    public_key: str
+    product_id: str
+    buyer_email: str
+    pricing: dict
+
+
+class ProductSaleResponse(BaseModel):
+    id: str
+    product_id: str
+    product_title: str
+    buyer_email: str
+    amount_paid: float
+    paystack_reference: str
+    download_count: int
+    download_flagged: bool
+    created_at: datetime

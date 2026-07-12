@@ -200,6 +200,48 @@ def _migrate_users_billing_schema(conn, is_sqlite: bool) -> None:
     )
 
 
+def _migrate_profiles_avatar_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(profiles)")).fetchall()
+        names = {row[1] for row in columns}
+        if "avatar_public_id" not in names:
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN avatar_public_id VARCHAR(255)"))
+        if "avatar_version" not in names:
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN avatar_version INTEGER"))
+        if "social_links" not in names:
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN social_links JSON NOT NULL DEFAULT '[]'"))
+        if "email_capture_enabled" not in names:
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN email_capture_enabled BOOLEAN NOT NULL DEFAULT 0"))
+        if "email_capture_heading" not in names:
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN email_capture_heading VARCHAR(120)"))
+        if "announcement_enabled" not in names:
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN announcement_enabled BOOLEAN NOT NULL DEFAULT 0"))
+        if "announcement_text" not in names:
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN announcement_text VARCHAR(150)"))
+        return
+
+    for column, ddl in (
+        ("avatar_public_id", "ALTER TABLE profiles ADD COLUMN avatar_public_id VARCHAR(255)"),
+        ("avatar_version", "ALTER TABLE profiles ADD COLUMN avatar_version INTEGER"),
+        ("social_links", "ALTER TABLE profiles ADD COLUMN social_links JSONB NOT NULL DEFAULT '[]'::jsonb"),
+        ("email_capture_enabled", "ALTER TABLE profiles ADD COLUMN email_capture_enabled BOOLEAN NOT NULL DEFAULT false"),
+        ("email_capture_heading", "ALTER TABLE profiles ADD COLUMN email_capture_heading VARCHAR(120)"),
+        ("announcement_enabled", "ALTER TABLE profiles ADD COLUMN announcement_enabled BOOLEAN NOT NULL DEFAULT false"),
+        ("announcement_text", "ALTER TABLE profiles ADD COLUMN announcement_text VARCHAR(150)"),
+    ):
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'profiles' AND column_name = :column
+                """
+            ),
+            {"column": column},
+        ).fetchone()
+        if not row:
+            conn.execute(text(ddl))
+
+
 def _migrate_postgres_schema() -> None:
     if _is_sqlite:
         return
@@ -216,9 +258,21 @@ def _migrate_postgres_schema() -> None:
         if not row:
             conn.execute(text("ALTER TABLE links ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT false"))
 
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'links' AND column_name = 'type'
+                """
+            )
+        ).fetchone()
+        if not row:
+            conn.execute(text("ALTER TABLE links ADD COLUMN type VARCHAR(20) NOT NULL DEFAULT 'link'"))
+
         _migrate_link_clicks_schema(conn, is_sqlite=False)
         _migrate_page_views_schema(conn, is_sqlite=False)
         _migrate_users_billing_schema(conn, is_sqlite=False)
+        _migrate_profiles_avatar_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -238,7 +292,10 @@ def _migrate_sqlite_schema() -> None:
         link_column_names = {row[1] for row in link_columns}
         if "is_featured" not in link_column_names:
             conn.execute(text("ALTER TABLE links ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT 0"))
+        if "type" not in link_column_names:
+            conn.execute(text("ALTER TABLE links ADD COLUMN type VARCHAR(20) NOT NULL DEFAULT 'link'"))
 
         _migrate_link_clicks_schema(conn, is_sqlite=True)
         _migrate_page_views_schema(conn, is_sqlite=True)
         _migrate_users_billing_schema(conn, is_sqlite=True)
+        _migrate_profiles_avatar_schema(conn, is_sqlite=True)

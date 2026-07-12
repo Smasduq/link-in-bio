@@ -1,9 +1,8 @@
 import logging
-import smtplib
-import ssl
-from datetime import datetime, timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import re
+
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 
 from app.config import SITE_NAME, settings
 from app.services.email_templates import (
@@ -14,78 +13,52 @@ from app.services.email_templates import (
 
 logger = logging.getLogger(__name__)
 
-SMTP_TIMEOUT_SECONDS = 15
+SENDER_NAME = "Smasduq"
+SENDER_EMAIL = "hello@smasduq.xyz"
+
+_configuration: sib_api_v3_sdk.Configuration | None = None
+_api_instance: sib_api_v3_sdk.TransactionalEmailsApi | None = None
 
 
-def _is_configured() -> bool:
-    return bool(settings.smtp_host and settings.smtp_password and settings.mail_from and settings.smtp_user)
+def _get_api() -> sib_api_v3_sdk.TransactionalEmailsApi | None:
+    global _configuration, _api_instance
+    if not settings.brevo_api_key:
+        return None
+    if _api_instance is None:
+        _configuration = sib_api_v3_sdk.Configuration()
+        _configuration.api_key["api-key"] = settings.brevo_api_key
+        _api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(_configuration))
+    return _api_instance
 
 
-def send_email(*, to: str, subject: str, html_body: str, text_body: str | None = None) -> tuple[bool, str | None]:
-    if not _is_configured():
-        logger.error(
-            "Email not configured — missing smtp_host=%s smtp_user=%s mail_from=%s password_set=%s",
-            bool(settings.smtp_host),
-            bool(settings.smtp_user),
-            bool(settings.mail_from),
-            bool(settings.smtp_password),
-        )
-        return False, "Email is not configured on the server."
+def send_email(to: str, subject: str, html_body: str) -> bool:
+    """Send a transactional HTML email via Brevo. Never raises — failures are logged only."""
+    api_instance = _get_api()
+    if api_instance is None:
+        logger.error("Email not configured — missing BREVO_API_KEY")
+        return False
 
-    message = MIMEMultipart("alternative")
-    message["Subject"] = subject
-    message["From"] = f"{settings.mail_from_name} <{settings.mail_from}>"
-    message["To"] = to
-
-    plain = text_body or _html_to_plain(html_body)
-    message.attach(MIMEText(plain, "plain", "utf-8"))
-    message.attach(MIMEText(html_body, "html", "utf-8"))
-
-    logger.info("Sending email via %s:%s to %s — %s", settings.smtp_host, settings.smtp_port, to, subject)
+    logger.info("Sending email via Brevo to %s — %s", to, subject)
 
     try:
-        if settings.smtp_use_ssl:
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(
-                settings.smtp_host, settings.smtp_port, context=context, timeout=SMTP_TIMEOUT_SECONDS
-            ) as server:
-                server.login(settings.smtp_user, settings.smtp_password)
-                server.sendmail(settings.mail_from, [to], message.as_string())
-        else:
-            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=SMTP_TIMEOUT_SECONDS) as server:
-                server.ehlo()
-                server.starttls(context=ssl.create_default_context())
-                server.ehlo()
-                server.login(settings.smtp_user, settings.smtp_password)
-                server.sendmail(settings.mail_from, [to], message.as_string())
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+            to=[{"email": to}],
+            sender={"name": SENDER_NAME, "email": SENDER_EMAIL},
+            subject=subject,
+            html_content=html_body,
+        )
+        api_instance.send_transac_email(send_smtp_email)
         logger.info("Email sent successfully to %s", to)
-        return True, None
-    except smtplib.SMTPAuthenticationError as exc:
-        logger.error(
-            "SMTP authentication failed (host=%s user=%s code=%s): %s",
-            settings.smtp_host,
-            settings.smtp_user,
-            exc.smtp_code,
-            exc.smtp_error,
-        )
-        return False, (
-            f"SMTP authentication failed for {settings.smtp_user}. "
-            "Use a Zoho app password and the correct regional host (smtp.zoho.eu or smtp.zoho.com)."
-        )
-    except smtplib.SMTPException as exc:
-        logger.error("SMTP error sending to %s via %s: %s", to, settings.smtp_host, exc)
-        return False, f"SMTP error: {exc}"
-    except OSError as exc:
-        logger.error("Network error connecting to %s:%s — %s", settings.smtp_host, settings.smtp_port, exc)
-        return False, f"Cannot reach mail server {settings.smtp_host}:{settings.smtp_port}."
+        return True
+    except ApiException as exc:
+        logger.error("Failed to send email to %s: %s", to, exc)
+        return False
     except Exception:
         logger.exception("Unexpected failure sending email to %s", to)
-        return False, "Unexpected error while sending email."
+        return False
 
 
 def _html_to_plain(html: str) -> str:
-    import re
-
     text = re.sub(r"<br\s*/?>", "\n", html, flags=re.I)
     text = re.sub(r"</p>", "\n\n", text, flags=re.I)
     text = re.sub(r"<[^>]+>", "", text)
@@ -96,74 +69,29 @@ def send_welcome_email(*, to: str, username: str) -> bool:
     profile_url = f"{settings.frontend_url}/{username}"
     dashboard_url = f"{settings.frontend_url}/dashboard"
     html = welcome_email_html(username=username, profile_url=profile_url, dashboard_url=dashboard_url)
-
-    sent, _ = send_email(
+    return send_email(
         to=to,
         subject=f"Welcome to {SITE_NAME} — your page is live",
         html_body=html,
-        text_body=f"Welcome to {SITE_NAME}, @{username}! Your page is live: {profile_url}",
     )
-    return sent
 
 
 def send_password_reset_email(*, to: str, reset_url: str) -> bool:
     html = password_reset_email_html(reset_url=reset_url)
-
-    sent, _ = send_email(
+    return send_email(
         to=to,
         subject=f"Reset your {SITE_NAME} password",
         html_body=html,
-        text_body=f"Reset your {SITE_NAME} password: {reset_url}",
     )
-    return sent
 
 
 def send_otp_email(*, to: str, otp: str, purpose: str) -> tuple[bool, str | None]:
-    action = "sign up" if purpose == "signup" else "sign in"
     html = otp_email_html(otp=otp, purpose=purpose)
-
-    return send_email(
+    sent = send_email(
         to=to,
         subject=f"{otp} is your {SITE_NAME} verification code",
         html_body=html,
-        text_body=f"Your {SITE_NAME} verification code is {otp}. Use it to {action}. It expires in {settings.otp_expire_minutes} minutes.",
     )
-
-
-def send_payment_failed_email(*, to: str, grace_until: datetime, plan: str) -> bool:
-    grace_text = grace_until.astimezone(timezone.utc).strftime("%B %d, %Y")
-    billing_url = f"{settings.frontend_url.rstrip('/')}/dashboard/settings"
-    html = f"""
-    <p>Hi,</p>
-    <p>We couldn't renew your {SITE_NAME} Pro ({plan}) subscription.</p>
-    <p>Your Pro access continues until <strong>{grace_text}</strong>. Update your payment method or resubscribe from settings before then to avoid losing access.</p>
-    <p><a href="{billing_url}">Manage billing</a></p>
-    """
-    sent, _ = send_email(
-        to=to,
-        subject=f"Action needed — {SITE_NAME} payment failed",
-        html_body=html,
-        text_body=(
-            f"We couldn't renew your {SITE_NAME} Pro subscription. "
-            f"Access continues until {grace_text}. Manage billing: {billing_url}"
-        ),
-    )
-    return sent
-
-
-def send_manual_renewal_reminder_email(*, to: str, expires_at: datetime, plan: str) -> bool:
-    expiry_text = expires_at.astimezone(timezone.utc).strftime("%B %d, %Y")
-    renew_url = f"{settings.frontend_url.rstrip('/')}/upgrade?renew=manual"
-    html = f"""
-    <p>Hi,</p>
-    <p>Your {SITE_NAME} Pro ({plan}) access expires on <strong>{expiry_text}</strong>.</p>
-    <p>Renew with a one-time payment to keep your premium themes and analytics without interruption.</p>
-    <p><a href="{renew_url}">Renew now</a></p>
-    """
-    sent, _ = send_email(
-        to=to,
-        subject=f"Your {SITE_NAME} Pro access expires soon",
-        html_body=html,
-        text_body=f"Your {SITE_NAME} Pro access expires on {expiry_text}. Renew: {renew_url}",
-    )
-    return sent
+    if not sent:
+        return False, "Email send failed"
+    return True, None

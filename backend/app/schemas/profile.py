@@ -3,6 +3,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.product import PublicProductResponse
+from app.schemas.social_link import SocialLinkItem
+
 
 class ThemeSettings(BaseModel):
     backgroundType: Literal["solid", "gradient", "image", "pattern"] = "solid"
@@ -69,6 +72,11 @@ class ProfileResponse(BaseModel):
     full_name: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
+    avatar_public_id: str | None = None
+    email_capture_enabled: bool = False
+    email_capture_heading: str | None = None
+    announcement_enabled: bool = False
+    announcement_text: str | None = None
     theme_settings: ThemeSettings
     created_at: datetime
     updated_at: datetime
@@ -84,9 +92,19 @@ class ProfileUpdate(BaseModel):
     theme_settings: ThemeSettings | None = None
 
 
+class AnnouncementUpdate(BaseModel):
+    announcement_enabled: bool | None = None
+    announcement_text: str | None = Field(default=None, max_length=150)
+
+
 class PublicProfileResponse(BaseModel):
     username: str
     full_name: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
+    social_links: list[SocialLinkItem] = Field(default_factory=list)
+    products: list[PublicProductResponse] = Field(default_factory=list)
+    email_capture_enabled: bool = False
+    email_capture_heading: str | None = None
+    announcement_text: str | None = None
     theme_settings: ThemeSettings

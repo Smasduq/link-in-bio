@@ -61,12 +61,8 @@ App: http://localhost:3000
 | `SECRET_KEY` | JWT signing secret |
 | `CORS_ORIGINS` | Comma-separated frontend URLs |
 | `FRONTEND_URL` | Frontend base URL (used in email links) |
-| `MAIL_FROM` | Sender address (`hello@smasduq.xyz`) |
-| `SMTP_HOST` | Zoho SMTP host (`smtp.zoho.com`) |
-| `SMTP_PORT` | `587` for STARTTLS, `465` for SSL |
-| `SMTP_USER` | Zoho mailbox login (same as `MAIL_FROM`) |
-| `SMTP_PASSWORD` | Zoho app-specific password |
-| `SMTP_USE_SSL` | `false` for port 587, `true` for port 465 |
+| `BREVO_API_KEY` | Brevo transactional email API key (sends from `hello@smasduq.xyz`) |
+| `DEV_ROUTES_ENABLED` | Set `true` locally to enable `POST /api/dev/test-email` |
 
 ### Frontend (`frontend/.env.local`)
 

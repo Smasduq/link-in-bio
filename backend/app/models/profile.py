@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, JSON, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -26,6 +26,13 @@ class Profile(Base):
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    avatar_public_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    avatar_version: Mapped[int | None] = mapped_column(nullable=True)
+    social_links: Mapped[list] = mapped_column(JSON, default=lambda: [], nullable=False)
+    email_capture_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    email_capture_heading: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    announcement_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    announcement_text: Mapped[str | None] = mapped_column(String(150), nullable=True)
     theme_settings: Mapped[dict] = mapped_column(JSON, default=DEFAULT_THEME, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -34,3 +41,7 @@ class Profile(Base):
 
     user: Mapped["User"] = relationship("User", back_populates="profile")
     page_views: Mapped[list["PageView"]] = relationship("PageView", back_populates="profile", cascade="all, delete-orphan")
+    products: Mapped[list["Product"]] = relationship("Product", back_populates="profile", cascade="all, delete-orphan")
+    subscribers: Mapped[list["Subscriber"]] = relationship(
+        "Subscriber", back_populates="profile", cascade="all, delete-orphan"
+    )

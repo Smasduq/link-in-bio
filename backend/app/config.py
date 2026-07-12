@@ -19,14 +19,11 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3003"
     frontend_url: str = "http://localhost:3000"
 
-    # Mail / SMTP — values from .env (MAIL_FROM, SMTP_HOST, etc.)
-    mail_from: str = ""
-    mail_from_name: str = ""
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_user: str = ""
-    smtp_password: str = ""
-    smtp_use_ssl: bool = False
+    # Transactional email — Brevo (https://www.brevo.com)
+    brevo_api_key: str = ""
+    mail_from: str = "hello@smasduq.xyz"
+    mail_from_name: str = "Smasduq"
+    dev_routes_enabled: bool = False
     otp_expire_minutes: int = 10
 
     # Offline GeoIP — absolute path recommended; relative paths resolve from backend/
@@ -40,10 +37,13 @@ class Settings(BaseSettings):
     paystack_yearly_discount_percent: float = 15.0
     billing_past_due_grace_days: int = 3
     billing_manual_renewal_reminder_days: int = 3
+    product_download_token_days: int = 7
+    product_max_file_bytes: int = 50 * 1024 * 1024
 
-    # Avatar storage — Hugging Face dataset repo
-    hf_token: str = ""
-    hf_repo_id: str = ""
+    # Avatar storage — Cloudinary
+    cloudinary_cloud_name: str = ""
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
 
     @property
     def default_avatar_url(self) -> str:

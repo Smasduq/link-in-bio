@@ -81,7 +81,7 @@ export default function AppearancePage() {
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Appearance</h1>
         <p className="text-sm text-muted-foreground">
-          Pick a preset theme or fine-tune colors, fonts, and buttons. Changes preview instantly.
+          Pick a preset theme or fine-tune colors, fonts, and buttons. The preview includes links, products, and embeds.
         </p>
       </div>
 
@@ -286,8 +286,11 @@ export default function AppearancePage() {
             <CardTitle className="flex items-center gap-2 text-base">
               <ImageIcon className="h-4 w-4" /> Live preview
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Links, product cards, YouTube, and Spotify blocks update as you edit the theme.
+            </p>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="max-h-[min(720px,calc(100vh-8rem))] overflow-y-auto p-0">
             <ProfileLivePreview theme={theme} username={username} compact />
           </CardContent>
         </Card>

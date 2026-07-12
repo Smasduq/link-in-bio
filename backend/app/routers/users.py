@@ -17,8 +17,13 @@ async def upload_my_avatar(
     current_user: User = Depends(get_current_user),
 ):
     profile = get_user_profile(current_user)
-    avatar_url = await upload_avatar(current_user.id, file)
-    profile.avatar_url = avatar_url
+    result = await upload_avatar(current_user.id, file)
+    profile.avatar_public_id = result.public_id
+    profile.avatar_version = result.version
+    profile.avatar_url = None
     db.commit()
     db.refresh(profile)
-    return AvatarUploadResponse(avatar_url=avatar_url)
+    return AvatarUploadResponse(
+        avatar_url=result.delivery_url,
+        avatar_public_id=result.public_id,
+    )

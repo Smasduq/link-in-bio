@@ -6,11 +6,69 @@ from app.dependencies import get_current_user
 from app.models.link import Link
 from app.models.user import User
 from app.schemas.analytics import LinkClickInsights, TrackClickRequest
-from app.schemas.link import LinkCreate, LinkReorderRequest, LinkResponse, LinkUpdate
+from app.schemas.link import (
+    EmbedDetectRequest,
+    EmbedDetectResponse,
+    LinkCreate,
+    LinkReorderRequest,
+    LinkResponse,
+    LinkUpdate,
+)
 from app.services.auth import get_favicon_url
 from app.services.click_tracking import get_link_click_insights, record_link_click
+from app.services.embed_links import (
+    default_embed_title,
+    detect_embed_type,
+    normalize_link_url,
+    parse_spotify_url,
+    parse_youtube_url,
+)
 
 router = APIRouter(prefix="/links", tags=["links"])
+
+
+def _resolve_create_type(payload: LinkCreate) -> str:
+    if payload.type and payload.type != "link":
+        return payload.type
+    detected = detect_embed_type(payload.url)
+    return detected or "link"
+
+
+def _prepare_link_fields(link_type: str, raw_url: str, title: str | None) -> tuple[str, str, str | None]:
+    url = normalize_link_url(link_type, raw_url)
+    if link_type == "link":
+        resolved_title = (title or "").strip()
+    else:
+        resolved_title = (title or "").strip() or default_embed_title(link_type, raw_url)
+    icon = None if link_type != "link" else get_favicon_url(url)
+    return resolved_title, url, icon
+
+
+@router.post("/detect-embed", response_model=EmbedDetectResponse)
+def detect_embed(payload: EmbedDetectRequest, current_user: User = Depends(get_current_user)):
+    """Validate a pasted YouTube/Spotify URL and return detected embed metadata."""
+    del current_user
+    detected = detect_embed_type(payload.url)
+    if detected == "youtube_embed":
+        parsed = parse_youtube_url(payload.url)
+        return EmbedDetectResponse(
+            type=detected,
+            title_suggestion=default_embed_title(detected, payload.url),
+            embed_src=parsed["embed_src"],
+            canonical_url=parsed["canonical_url"],
+        )
+    if detected == "spotify_embed":
+        parsed = parse_spotify_url(payload.url)
+        return EmbedDetectResponse(
+            type=detected,
+            title_suggestion=default_embed_title(detected, payload.url),
+            embed_src=parsed["embed_src"],
+            canonical_url=parsed["canonical_url"],
+        )
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Paste a valid YouTube or Spotify URL.",
+    )
 
 
 @router.post("/{link_id}/click", status_code=status.HTTP_204_NO_CONTENT)
@@ -21,6 +79,9 @@ def track_link_click(
     db: Session = Depends(get_db),
 ):
     """Public click tracking — no auth; logs referrer, device, country, and hashed visitor id."""
+    link = db.query(Link).filter(Link.id == link_id).first()
+    if link and link.type != "link":
+        return None
     record_link_click(db, link_id, request, payload.referrer)
 
 
@@ -59,15 +120,17 @@ def create_link(
     )
     next_position = (max_position[0] + 1) if max_position else 0
 
-    url = payload.url.strip()
-    if not url.startswith(("http://", "https://")):
-        url = f"https://{url}"
+    link_type = _resolve_create_type(payload)
+    title, url, icon = _prepare_link_fields(link_type, payload.url, payload.title)
+    if link_type == "link" and not title:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Title is required.")
 
     link = Link(
         user_id=current_user.id,
-        title=payload.title.strip(),
+        title=title,
         url=url,
-        icon=get_favicon_url(url),
+        icon=icon,
+        type=link_type,
         position=next_position,
     )
     db.add(link)
@@ -88,13 +151,20 @@ def update_link(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
 
     updates = payload.model_dump(exclude_unset=True)
+    next_type = updates.get("type", link.type)
+
     if "url" in updates and updates["url"]:
-        url = updates["url"].strip()
-        if not url.startswith(("http://", "https://")):
-            url = f"https://{url}"
+        title = updates.get("title", link.title)
+        resolved_title, url, icon = _prepare_link_fields(next_type, updates["url"], title)
         updates["url"] = url
-        if "icon" not in updates:
-            updates["icon"] = get_favicon_url(url)
+        updates["title"] = resolved_title
+        updates["icon"] = icon
+
+    if "type" in updates and updates["type"] != "link" and "url" not in updates:
+        resolved_title, url, icon = _prepare_link_fields(updates["type"], link.url, updates.get("title", link.title))
+        updates["url"] = url
+        updates["title"] = resolved_title
+        updates["icon"] = icon
 
     for key, value in updates.items():
         setattr(link, key, value)

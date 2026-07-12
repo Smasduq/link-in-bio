@@ -437,3 +437,41 @@ def billing_status_payload(user: User, db: Session) -> dict[str, Any]:
         "yearly_savings_amount": yearly.get("yearly_savings_amount"),
         "paystack_public_key": None,
     }
+
+
+def billing_history_payload(db: Session, user_id: str) -> list[dict[str, Any]]:
+    """Successful Pro subscription charges for payment history (excludes product sales)."""
+    events = (
+        db.query(BillingEvent)
+        .filter(BillingEvent.user_id == user_id, BillingEvent.event_type == "charge.success")
+        .order_by(BillingEvent.created_at.desc())
+        .limit(100)
+        .all()
+    )
+
+    seen_references: set[str] = set()
+    items: list[dict[str, Any]] = []
+
+    for event in events:
+        reference = event.paystack_reference
+        if not reference or reference in seen_references:
+            continue
+
+        payload = event.payload or {}
+        data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
+        metadata = data.get("metadata") or {}
+        if metadata.get("product_id"):
+            continue
+
+        seen_references.add(reference)
+        items.append(
+            {
+                "reference": reference,
+                "paid_at": _parse_paid_at(data) if data else _as_utc(event.created_at) or _utcnow(),
+                "amount_ngn": _charge_amount_ngn(data),
+                "status": data.get("status") or "success",
+                "plan": metadata.get("plan"),
+            }
+        )
+
+    return items

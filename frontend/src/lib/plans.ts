@@ -6,20 +6,33 @@ export type PlanFeature = {
   pro: boolean | string;
 };
 
-/** Free vs Pro split aligned with themes, button styles, and analytics. */
+/**
+ * Single source of truth for Free vs Pro — used on /upgrade and /dashboard/settings/billing.
+ * `free` / `pro`: true = included; false = not included; string = partial access note.
+ */
 export const PLAN_FEATURES: PlanFeature[] = [
   { label: "Unlimited links", free: true, pro: true },
   { label: "Basic solid theme", free: true, pro: true },
+  { label: "Sell digital products", free: true, pro: true },
   { label: "6 premium theme presets", free: false, pro: true },
   { label: "Glass & signature effects", free: false, pro: true },
   { label: "Gradient, pattern & image backgrounds", free: false, pro: true },
   { label: "All button styles (outline, glass, pill)", free: "Filled & outline only", pro: true },
   { label: "Full Google Fonts library", free: "Inter & DM Sans", pro: true },
+  { label: 'Remove "Powered by" badge', free: false, pro: true },
   { label: "Page views & link click totals", free: true, pro: true },
   { label: "Unique visitors & 7-day trends", free: false, pro: true },
   { label: "Visitor insights (regions, devices, active time)", free: false, pro: true },
   { label: "Featured link styling", free: false, pro: true },
+  { label: "Email capture / newsletter block", free: false, pro: true },
 ];
+
+/** Alias for billing page docs — same array, do not duplicate. */
+export const FEATURES = PLAN_FEATURES;
+
+/** Highlight line on the free-plan billing view and upgrade page hero. */
+export const PRO_UPGRADE_HIGHLIGHT =
+  "See exactly where your visitors come from and when they're most active — unlock with Pro";
 
 export const FREE_THEME_PRESET_IDS = new Set<string>();
 export const PRO_ONLY_BUTTON_STYLES = new Set(["glass"]);
@@ -82,6 +95,18 @@ export type CancelBillingResponse = {
   subscription_status: "cancelled";
   premium_until: string | null;
   message: string;
+};
+
+export type BillingHistoryItem = {
+  reference: string;
+  paid_at: string;
+  amount_ngn: number;
+  status: string;
+  plan: string | null;
+};
+
+export type BillingHistoryResponse = {
+  items: BillingHistoryItem[];
 };
 
 export type InitializeBillingResponse = {

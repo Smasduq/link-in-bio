@@ -6,39 +6,48 @@ from fastapi import HTTPException, UploadFile
 
 from app.services.avatar import (
     MAX_UPLOAD_BYTES,
-    _process_image,
-    _validate_content_type,
-    resolve_avatar_url,
+    build_avatar_delivery_url,
+    resolve_profile_avatar_url,
     upload_avatar,
 )
 
 
-def test_resolve_avatar_url_uses_placeholder_when_missing():
+def test_build_avatar_delivery_url_with_transforms():
+    with patch("app.services.avatar.settings") as mock_settings:
+        mock_settings.cloudinary_cloud_name = "demo"
+        url = build_avatar_delivery_url("avatars/user-1")
+        assert (
+            url
+            == "https://res.cloudinary.com/demo/image/upload/w_512,h_512,c_fill,g_face,q_auto,f_auto/avatars/user-1"
+        )
+
+
+def test_build_avatar_delivery_url_includes_version_for_cache_busting():
+    with patch("app.services.avatar.settings") as mock_settings:
+        mock_settings.cloudinary_cloud_name = "demo"
+        url = build_avatar_delivery_url("avatars/user-1", version=1710000000)
+        assert (
+            url
+            == "https://res.cloudinary.com/demo/image/upload/w_512,h_512,c_fill,g_face,q_auto,f_auto/v1710000000/avatars/user-1"
+        )
+
+
+def test_resolve_profile_avatar_url_uses_cloudinary_public_id():
+    profile = MagicMock(
+        avatar_public_id="avatars/user-1",
+        avatar_version=42,
+        avatar_url=None,
+    )
+    with patch("app.services.avatar.settings") as mock_settings:
+        mock_settings.cloudinary_cloud_name = "demo"
+        assert resolve_profile_avatar_url(profile).endswith("/v42/avatars/user-1")
+
+
+def test_resolve_profile_avatar_url_uses_placeholder_when_missing():
+    profile = MagicMock(avatar_public_id=None, avatar_version=None, avatar_url=None)
     with patch("app.services.avatar.settings") as mock_settings:
         mock_settings.default_avatar_url = "https://example.com/linkbio-mark.png"
-        assert resolve_avatar_url(None) == "https://example.com/linkbio-mark.png"
-        assert resolve_avatar_url("  ") == "https://example.com/linkbio-mark.png"
-
-
-def test_resolve_avatar_url_keeps_custom_value():
-    url = "https://huggingface.co/datasets/org/repo/resolve/main/avatars/u1.webp"
-    assert resolve_avatar_url(url) == url
-
-
-def test_validate_content_type_rejects_pdf():
-    with pytest.raises(HTTPException) as exc:
-        _validate_content_type("application/pdf")
-    assert exc.value.status_code == 400
-
-
-def test_process_image_outputs_webp():
-    from PIL import Image
-
-    buffer = io.BytesIO()
-    Image.new("RGB", (1200, 800), color="#336699").save(buffer, format="JPEG")
-    webp = _process_image(buffer.getvalue())
-    assert webp.startswith(b"RIFF")
-    assert len(webp) < len(buffer.getvalue())
+        assert resolve_profile_avatar_url(profile) == "https://example.com/linkbio-mark.png"
 
 
 @pytest.mark.asyncio
@@ -55,24 +64,26 @@ async def test_upload_avatar_rejects_oversized_file():
 
 @pytest.mark.asyncio
 async def test_upload_avatar_success():
-    from PIL import Image
-
-    buffer = io.BytesIO()
-    Image.new("RGB", (640, 640), color="#224466").save(buffer, format="PNG")
-    buffer.seek(0)
-
-    file = UploadFile(filename="avatar.png", file=buffer)
-    file.content_type = "image/png"
+    file = UploadFile(filename="avatar.jpg", file=io.BytesIO(b"fake-image-bytes"))
+    file.content_type = "image/jpeg"
 
     with (
         patch("app.services.avatar.settings") as mock_settings,
-        patch("app.services.avatar.HfApi") as mock_hf_api,
+        patch("app.services.avatar.cloudinary.uploader.upload") as mock_upload,
     ):
-        mock_settings.hf_token = "hf_test"
-        mock_settings.hf_repo_id = "org/linkbio-avatars"
-        mock_hf_api.return_value.upload_file = MagicMock()
+        mock_settings.cloudinary_cloud_name = "demo"
+        mock_settings.cloudinary_api_key = "key"
+        mock_settings.cloudinary_api_secret = "secret"
+        mock_upload.return_value = {"version": 1710000000}
 
-        url = await upload_avatar("user-123", file)
+        result = await upload_avatar("user-123", file)
 
-    assert url == "https://huggingface.co/datasets/org/linkbio-avatars/resolve/main/avatars/user-123.webp"
-    mock_hf_api.return_value.upload_file.assert_called_once()
+    assert result.public_id == "avatars/user-123"
+    assert result.version == 1710000000
+    assert "w_512,h_512,c_fill,g_face,q_auto,f_auto" in result.delivery_url
+    mock_upload.assert_called_once_with(
+        b"fake-image-bytes",
+        public_id="avatars/user-123",
+        overwrite=True,
+        resource_type="image",
+    )

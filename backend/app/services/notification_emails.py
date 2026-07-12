@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from app.config import SITE_NAME, settings
+from app.services.email_templates import transactional_email_html
 
 NotificationType = str
 
@@ -50,6 +51,7 @@ def render_notification_message(notification_type: NotificationType, context: di
         "access_expiring": f"Your Pro access ends in 3 days. Renew at {upgrade_link}.",
         "access_expired": "Your Pro access has ended. You're now on the Free plan.",
         "resubscribed": "Welcome back to Pro!",
+        "product_sale": f"You made a sale! {context.get('product_title', 'Product')} — {_format_ngn(context.get('amount'))}.",
     }
     return messages.get(notification_type, "You have a new billing update.")
 
@@ -76,6 +78,7 @@ def render_notification_email(
         "access_expiring": f"Pro access ending soon — {SITE_NAME}",
         "access_expired": f"Pro access ended — {SITE_NAME}",
         "resubscribed": f"Welcome back to Pro — {SITE_NAME}",
+        "product_sale": f"You made a sale! — {SITE_NAME}",
     }
 
     bodies = {
@@ -114,14 +117,24 @@ def render_notification_email(
             f"<p>Welcome back to Pro!</p>"
             f'<p><a href="{_link("/dashboard")}">Open dashboard</a></p>'
         ),
+        "product_sale": (
+            f"<p>You made a sale!</p>"
+            f"<p><strong>{context.get('product_title', 'Product')}</strong> — "
+            f"<strong>{_format_ngn(context.get('amount'))}</strong></p>"
+            f"<p>Buyer: {context.get('buyer_email', '—')}</p>"
+            f'<p><a href="{_link("/dashboard/sales")}">View sales</a></p>'
+        ),
     }
 
     subject = subjects.get(notification_type, f"Billing update — {SITE_NAME}")
-    html_body = f"""
-    <div style="font-family: Inter, Arial, sans-serif; line-height: 1.6; color: #111827;">
-      {bodies.get(notification_type, "<p>You have a new billing update.</p>")}
-      <p style="color:#6b7280;font-size:12px;">Sent to {recipient_email}</p>
-    </div>
-    """
+    inner = bodies.get(notification_type, "<p>You have a new billing update.</p>")
+    html_body = transactional_email_html(
+        title=subject,
+        content=(
+            f'<div style="font-size: 16px; line-height: 1.6; color: #111827;">{inner}</div>'
+            f'<p style="margin-top: 24px; font-size: 12px; color: #9ca3af;">Sent to {recipient_email}</p>'
+        ),
+        preheader=render_notification_message(notification_type, context),
+    )
     text_body = render_notification_message(notification_type, context)
     return subject, html_body, text_body

@@ -12,11 +12,12 @@ const MAX_BYTES = 5 * 1024 * 1024;
 
 type AvatarUploadProps = {
   avatarUrl: string | null;
-  onUploaded: (avatarUrl: string) => void;
+  avatarPublicId?: string | null;
+  onUploaded: (payload: { avatarUrl: string; avatarPublicId: string }) => void;
   className?: string;
 };
 
-export function AvatarUpload({ avatarUrl, onUploaded, className }: AvatarUploadProps) {
+export function AvatarUpload({ avatarUrl, avatarPublicId, onUploaded, className }: AvatarUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -65,8 +66,11 @@ export function AvatarUpload({ avatarUrl, onUploaded, className }: AvatarUploadP
 
     setUploading(true);
     try {
-      const result = await apiUploadFile<{ avatar_url: string }>("/api/users/me/avatar", file);
-      onUploaded(result.avatar_url);
+      const result = await apiUploadFile<{ avatar_url: string; avatar_public_id: string }>(
+        "/api/users/me/avatar",
+        file
+      );
+      onUploaded({ avatarUrl: result.avatar_url, avatarPublicId: result.avatar_public_id });
       setPreviewUrl(null);
     } catch (err) {
       setPreviewUrl((current) => {
@@ -105,7 +109,7 @@ export function AvatarUpload({ avatarUrl, onUploaded, className }: AvatarUploadP
         <div className="space-y-1">
           <p className="text-sm font-medium">Profile photo</p>
           <p className="text-xs text-muted-foreground">
-            JPEG, PNG, or WebP up to 5MB. We resize to 512px and convert to WebP.
+            JPEG, PNG, or WebP up to 5MB. Cloudinary optimizes delivery automatically.
           </p>
           <button
             type="button"
@@ -113,12 +117,12 @@ export function AvatarUpload({ avatarUrl, onUploaded, className }: AvatarUploadP
             disabled={uploading}
             className="text-sm font-medium text-emerald-600 hover:text-emerald-700 disabled:opacity-60 dark:text-emerald-400"
           >
-            {uploading ? "Uploading…" : hasCustomAvatar(avatarUrl) ? "Change photo" : "Upload photo"}
+            {uploading ? "Uploading…" : hasCustomAvatar(avatarPublicId) ? "Change photo" : "Upload photo"}
           </button>
         </div>
       </div>
 
-      {!hasCustomAvatar(avatarUrl) && !previewUrl ? (
+      {!hasCustomAvatar(avatarPublicId) && !previewUrl ? (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <User className="h-3.5 w-3.5" />
           <span>Using the default avatar until you upload one.</span>

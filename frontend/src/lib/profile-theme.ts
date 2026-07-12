@@ -149,6 +149,314 @@ function isLightBackground(theme: ThemeSettings): boolean {
   return (r * 299 + g * 587 + b * 114) / 1000 > 160;
 }
 
+function parseHexColor(input: string): [number, number, number] | null {
+  const hex = input.trim();
+  if (!hex.startsWith("#")) return null;
+  const raw = hex.slice(1);
+  if (raw.length === 3) {
+    return raw.split("").map((channel) => parseInt(channel + channel, 16)) as [number, number, number];
+  }
+  if (raw.length === 6) {
+    return [
+      parseInt(raw.slice(0, 2), 16),
+      parseInt(raw.slice(2, 4), 16),
+      parseInt(raw.slice(4, 6), 16),
+    ];
+  }
+  return null;
+}
+
+function mixChannel(from: number, to: number, amount: number): number {
+  return Math.round(from + (to - from) * amount);
+}
+
+function rgbaFromRgb([r, g, b]: [number, number, number], alpha: number): string {
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function relativeLuminance([r, g, b]: [number, number, number]): number {
+  const channels = [r, g, b].map((value) => {
+    const normalized = value / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const fg = parseHexColor(foreground);
+  const bg = parseHexColor(background);
+  if (!fg || !bg) return 4.5;
+  const l1 = relativeLuminance(fg);
+  const l2 = relativeLuminance(bg);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** Border radius for link/button elements only (includes pill when buttonStyle is rounded). */
+export function getLinkButtonBorderRadius(theme: ThemeSettings): string {
+  const normalized = normalizeTheme(theme);
+  return linkButtonBorderRadius(normalized.buttonStyle, normalized.presetId);
+}
+
+/** Border radius for cards, embeds, and containers — not affected by pill button style. */
+export function getThemeBlockBorderRadius(theme: ThemeSettings): string {
+  const normalized = normalizeTheme(theme);
+  return blockBorderRadius(normalized.buttonStyle);
+}
+
+/** @deprecated Use getThemeBlockBorderRadius for containers or getLinkButtonBorderRadius for buttons. */
+export function getThemeBorderRadius(theme: ThemeSettings): string {
+  return getThemeBlockBorderRadius(theme);
+}
+
+/**
+ * Derives a card/container background from the page background — lighter tint on dark
+ * themes, slightly lifted surface on light themes. Preset-aware where link buttons already
+ * use bespoke surfaces (botanical, sunset-pop, neon-grid).
+ */
+export function getThemeSurfaceColor(theme: ThemeSettings): string {
+  const normalized = normalizeTheme(theme);
+  const light = isLightBackground(normalized);
+
+  if (normalized.presetId === "sunset-pop") {
+    return "rgba(255, 255, 255, 0.92)";
+  }
+  if (normalized.presetId === "botanical") {
+    return "rgba(255, 255, 255, 0.55)";
+  }
+  if (normalized.presetId === "neon-grid") {
+    return "rgba(21, 14, 39, 0.72)";
+  }
+  if (normalized.presetId === "terminal") {
+    return "rgba(63, 224, 112, 0.06)";
+  }
+  if (normalized.presetId === "midnight-glass" || normalized.buttonStyle === "glass") {
+    return "rgba(255, 255, 255, 0.1)";
+  }
+
+  const base =
+    normalized.backgroundType === "solid" ? parseHexColor(normalized.background) : null;
+
+  if (light) {
+    if (base) {
+      return rgbaFromRgb(
+        [
+          mixChannel(base[0], 255, 0.4),
+          mixChannel(base[1], 255, 0.4),
+          mixChannel(base[2], 255, 0.4),
+        ],
+        0.94
+      );
+    }
+    return "rgba(255, 255, 255, 0.88)";
+  }
+
+  if (base) {
+    return rgbaFromRgb(
+      [
+        mixChannel(base[0], 255, 0.14),
+        mixChannel(base[1], 255, 0.14),
+        mixChannel(base[2], 255, 0.14),
+      ],
+      0.5
+    );
+  }
+
+  return "rgba(255, 255, 255, 0.08)";
+}
+
+/** Full surface treatment for product cards, embeds, email capture, social chips. */
+export function getThemeSurfaceStyle(theme: ThemeSettings): CSSProperties {
+  const normalized = normalizeTheme(theme);
+  const radius = getThemeBlockBorderRadius(normalized);
+  const accent = normalized.accentColor;
+  const text = normalized.textColor;
+  const light = isLightBackground(normalized);
+
+  let border = `1px solid ${accent}33`;
+  let boxShadow: string | undefined;
+
+  if (normalized.presetId === "neon-grid") {
+    border = "1px solid rgba(255, 255, 255, 0.14)";
+  } else if (normalized.presetId === "botanical") {
+    border = `2px solid ${accent}55`;
+  } else if (normalized.presetId === "paper-ink") {
+    border = `1px solid ${text}18`;
+    boxShadow = "0 4px 14px rgba(26, 24, 21, 0.06)";
+  } else if (normalized.buttonStyle === "glass" || normalized.signatureEffect === "frosted-blur") {
+    border = "1px solid rgba(255, 255, 255, 0.18)";
+  } else if (light) {
+    border = `1px solid ${text}14`;
+    boxShadow = "0 4px 16px rgba(0, 0, 0, 0.08)";
+  }
+
+  const style: CSSProperties = {
+    backgroundColor: getThemeSurfaceColor(normalized),
+    borderRadius: radius,
+    border,
+    boxShadow,
+  };
+
+  if (normalized.buttonStyle === "glass" || normalized.signatureEffect === "frosted-blur") {
+    style.backdropFilter = "blur(12px)";
+    style.WebkitBackdropFilter = "blur(12px)";
+  }
+
+  return style;
+}
+
+const SPOTIFY_BRAND = "#1DB954";
+const YOUTUBE_BRAND = "#FF0033";
+
+/** Shoppable product card — accent stripe, elevated surface, commerce shadow. */
+export function getThemeProductCardStyle(theme: ThemeSettings): CSSProperties {
+  const normalized = normalizeTheme(theme);
+  const radius = getThemeBlockBorderRadius(normalized);
+  const accent = normalized.accentColor;
+  const light = isLightBackground(normalized);
+  const surface = getThemeSurfaceColor(normalized);
+
+  const style: CSSProperties = {
+    backgroundColor: surface,
+    borderRadius: radius,
+    border: `1px solid ${accent}28`,
+    borderTop: `3px solid ${accent}`,
+    boxShadow: light
+      ? `0 10px 28px rgba(0, 0, 0, 0.1), 0 2px 8px ${accent}18`
+      : `0 14px 36px rgba(0, 0, 0, 0.35), 0 0 0 1px ${accent}15`,
+    overflow: "hidden",
+  };
+
+  if (normalized.presetId === "paper-ink") {
+    style.border = `2px solid ${accent}`;
+    style.borderTop = `3px solid ${accent}`;
+    style.boxShadow = "0 6px 20px rgba(26, 24, 21, 0.08)";
+  }
+
+  if (normalized.buttonStyle === "glass" || normalized.signatureEffect === "frosted-blur") {
+    style.backdropFilter = "blur(12px)";
+    style.WebkitBackdropFilter = "blur(12px)";
+    style.border = `1px solid rgba(255, 255, 255, 0.2)`;
+    style.borderTop = `3px solid ${accent}`;
+  }
+
+  if (normalized.presetId === "neon-grid") {
+    style.backgroundColor = "rgba(21, 14, 39, 0.78)";
+    style.border = "1px solid rgba(255, 255, 255, 0.12)";
+    style.borderTop = `3px solid ${accent}`;
+    style.boxShadow = `0 0 20px ${accent}22`;
+  }
+
+  return style;
+}
+
+/** YouTube embed — dark letterbox frame that blends with the player chrome. */
+export function getThemeYoutubeEmbedStyle(theme: ThemeSettings): CSSProperties {
+  const normalized = normalizeTheme(theme);
+  const radius = getThemeBlockBorderRadius(normalized);
+  const accent = normalized.accentColor;
+  const light = isLightBackground(normalized);
+
+  return {
+    backgroundColor: light ? "rgba(18, 18, 22, 0.94)" : "rgba(0, 0, 0, 0.62)",
+    borderRadius: radius,
+    border: `1px solid ${light ? "rgba(255,255,255,0.08)" : `${accent}30`}`,
+    boxShadow: light
+      ? "0 16px 40px rgba(0, 0, 0, 0.2)"
+      : `0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.06)`,
+    padding: "10px 10px 12px",
+  };
+}
+
+/** Spotify embed — green-tinted compact player shell. */
+export function getThemeSpotifyEmbedStyle(theme: ThemeSettings): CSSProperties {
+  const normalized = normalizeTheme(theme);
+  const radius = getThemeBlockBorderRadius(normalized);
+  const light = isLightBackground(normalized);
+
+  return {
+    backgroundColor: light
+      ? "rgba(29, 185, 84, 0.08)"
+      : "rgba(18, 18, 18, 0.72)",
+    borderRadius: radius,
+    border: `1px solid ${SPOTIFY_BRAND}${light ? "44" : "55"}`,
+    boxShadow: light
+      ? `0 8px 24px rgba(29, 185, 84, 0.12)`
+      : `0 10px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px ${SPOTIFY_BRAND}22`,
+    padding: "10px 12px 12px",
+  };
+}
+
+export function getThemeEmbedLabelColor(
+  type: "youtube_embed" | "spotify_embed",
+  theme: ThemeSettings
+): string {
+  const normalized = normalizeTheme(theme);
+  if (type === "spotify_embed") return SPOTIFY_BRAND;
+  if (normalized.presetId === "terminal") return normalized.accentColor;
+  return contrastRatio(YOUTUBE_BRAND, normalized.backgroundType === "solid" ? normalized.background : "#0a0a0f") >= 2.5
+    ? YOUTUBE_BRAND
+    : normalized.accentColor;
+}
+
+export function getThemeEmbedLabelTextColor(theme: ThemeSettings): string {
+  const normalized = normalizeTheme(theme);
+  return isLightBackground(normalized) ? "rgba(255, 255, 255, 0.85)" : getThemeMutedTextColor(normalized, 0.75);
+}
+
+/** Accent-tinted pill/banner background for announcements. */
+export function getThemeAnnouncementStyle(theme: ThemeSettings): CSSProperties {
+  const normalized = normalizeTheme(theme);
+  const light = isLightBackground(normalized);
+  const accent = normalized.accentColor;
+
+  return {
+    color: normalized.textColor,
+    fontFamily: resolveFontFamily(normalized.fontBody),
+    backgroundColor: light ? `${accent}18` : `${accent}24`,
+    borderColor: `${accent}44`,
+    borderRadius: normalized.buttonStyle === "rounded"
+      ? "9999px"
+      : getThemeBlockBorderRadius(normalized),
+    borderWidth: 1,
+    borderStyle: "solid",
+  };
+}
+
+/** Icon color with basic contrast guard against the page background. */
+export function getThemeIconColor(theme: ThemeSettings): string {
+  const normalized = normalizeTheme(theme);
+  const sampleBackground =
+    normalized.backgroundType === "solid" ? normalized.background : normalized.textColor === "#FFFFFF" ? "#333333" : "#f5f5f5";
+
+  if (contrastRatio(normalized.accentColor, sampleBackground) >= 2.8) {
+    return normalized.accentColor;
+  }
+  return normalized.textColor;
+}
+
+export function getThemeMutedTextColor(theme: ThemeSettings, opacity = 0.7): string {
+  const normalized = normalizeTheme(theme);
+  if (normalized.textColor.startsWith("#") && normalized.textColor.length === 7) {
+    const alpha = Math.round(opacity * 255)
+      .toString(16)
+      .padStart(2, "0");
+    return `${normalized.textColor}${alpha}`;
+  }
+  return normalized.textColor;
+}
+
+export function getThemeBodyFontStyle(theme: ThemeSettings): CSSProperties {
+  return { fontFamily: resolveFontFamily(normalizeTheme(theme).fontBody) };
+}
+
+export function getThemeDisplayFontStyle(theme: ThemeSettings): CSSProperties {
+  return { fontFamily: resolveFontFamily(normalizeTheme(theme).fontDisplay) };
+}
+
 export function getFontPreset(fontFamily: string) {
   return FONT_PRESETS[fontFamily as FontPreset] ?? GOOGLE_FONT_REGISTRY["DM Sans"];
 }
@@ -181,16 +489,20 @@ export function getBackgroundStyle(theme: ThemeSettings): CSSProperties {
 }
 
 export function getThemeShellStyle(theme: ThemeSettings): CSSProperties {
+  const normalized = normalizeTheme(theme);
   return {
-    ...getBackgroundStyle(theme),
-    color: theme.textColor,
-    fontFamily: resolveFontFamily(theme.fontBody),
-    ["--profile-text" as string]: theme.textColor,
-    ["--profile-font-display" as string]: resolveFontFamily(theme.fontDisplay),
-    ["--profile-font-body" as string]: resolveFontFamily(theme.fontBody),
-    ["--profile-accent" as string]: theme.accentColor,
-    ["--profile-accent-soft" as string]: `${theme.accentColor}26`,
-    ["--profile-accent-secondary" as string]: theme.accentSecondary ?? theme.accentColor,
+    ...getBackgroundStyle(normalized),
+    color: normalized.textColor,
+    fontFamily: resolveFontFamily(normalized.fontBody),
+    ["--profile-text" as string]: normalized.textColor,
+    ["--profile-font-display" as string]: resolveFontFamily(normalized.fontDisplay),
+    ["--profile-font-body" as string]: resolveFontFamily(normalized.fontBody),
+    ["--profile-accent" as string]: normalized.accentColor,
+    ["--profile-accent-soft" as string]: `${normalized.accentColor}26`,
+    ["--profile-accent-secondary" as string]: normalized.accentSecondary ?? normalized.accentColor,
+    ["--profile-surface" as string]: getThemeSurfaceColor(normalized),
+    ["--profile-radius" as string]: getThemeBlockBorderRadius(normalized),
+    ["--profile-button-radius" as string]: getLinkButtonBorderRadius(normalized),
   };
 }
 
@@ -199,9 +511,14 @@ export function usesLightShellOverlay(theme: ThemeSettings): boolean {
   return !isLightBackground(theme);
 }
 
-function buttonBorderRadius(style: ThemeSettings["buttonStyle"], presetId?: string): string {
+function linkButtonBorderRadius(style: ThemeSettings["buttonStyle"], presetId?: string): string {
   if (style === "square") return "4px";
   if (style === "rounded" || presetId === "sunset-pop" || presetId === "botanical") return "9999px";
+  return "12px";
+}
+
+function blockBorderRadius(style: ThemeSettings["buttonStyle"]): string {
+  if (style === "square") return "4px";
   return "12px";
 }
 
@@ -211,7 +528,7 @@ export function getLinkButtonStyle(
 ): CSSProperties {
   const { featured = false } = options;
   const normalized = normalizeTheme(theme);
-  const radius = buttonBorderRadius(normalized.buttonStyle, normalized.presetId);
+  const radius = linkButtonBorderRadius(normalized.buttonStyle, normalized.presetId);
   const accent = normalized.accentColor;
   const text = normalized.textColor;
 

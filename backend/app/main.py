@@ -8,7 +8,7 @@ from sqlalchemy.exc import OperationalError
 
 from app.config import SITE_NAME, settings
 from app.database import ensure_db, SessionLocal
-from app.routers import analytics, auth, billing, links, notifications, profile, public, users
+from app.routers import analytics, auth, billing, dev, downloads, links, notifications, products, profile, public, sales, social_links, subscribers, users
 from app.services.geoip import close_geoip, init_geoip, resolve_geolite2_db_path
 from app.services.plan_catalog import ensure_billing_plans
 
@@ -38,12 +38,10 @@ async def lifespan(_app: FastAPI):
     logger.info("GeoLite2 database path: %s", resolve_geolite2_db_path())
 
     logger.info(
-        "SMTP configured: host=%s port=%s user=%s from=%s password_set=%s",
-        settings.smtp_host or "(missing)",
-        settings.smtp_port,
-        settings.smtp_user or "(missing)",
-        settings.mail_from or "(missing)",
-        bool(settings.smtp_password),
+        "Email configured: brevo=%s sender=%s dev_routes=%s",
+        bool(settings.brevo_api_key),
+        "hello@smasduq.xyz",
+        settings.dev_routes_enabled,
     )
 
     yield
@@ -64,11 +62,17 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(profile.router, prefix="/api")
 app.include_router(links.router, prefix="/api")
+app.include_router(social_links.router, prefix="/api")
 app.include_router(public.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
-app.include_router(users.router, prefix="/api")
+app.include_router(products.router, prefix="/api")
+app.include_router(sales.router, prefix="/api")
+app.include_router(subscribers.router, prefix="/api")
+
+if settings.dev_routes_enabled:
+    app.include_router(dev.router, prefix="/api")
 
 
 @app.exception_handler(OperationalError)

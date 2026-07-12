@@ -7,7 +7,12 @@ import { detectPlatform } from "@/lib/social";
 import { getLinkButtonStyle, getLinkIconColor, getUsernameStyle, normalizeTheme } from "@/lib/profile-theme";
 import { ClaimUsernameState } from "@/components/public/claim-username-state";
 import { ProfileThemeShell } from "@/components/public/profile-theme-shell";
+import { ProductCards } from "@/components/public/product-cards";
+import { EmailCaptureBlock } from "@/components/public/email-capture-block";
+import { ProfileAnnouncementBanner } from "@/components/public/profile-announcement-banner";
+import { ProfileEmbedBlock } from "@/components/public/profile-embed-block";
 import { TrackedProfileLink } from "@/components/public/tracked-profile-link";
+import { SocialIconsRow } from "@/components/social/social-icons-row";
 import { BrandWordmark } from "@/components/brand/logo";
 import type { PublicProfile, ThemeSettings } from "@/types/database";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -212,7 +217,23 @@ function ProfileContent({ profile }: { profile: PublicProfile }) {
               {profile.bio}
             </p>
           )}
+          <ProfileAnnouncementBanner text={profile.announcement_text} theme={theme} />
+          {profile.social_links && profile.social_links.length > 0 ? (
+            <SocialIconsRow links={profile.social_links} theme={theme} className="mt-5" />
+          ) : null}
         </header>
+
+        {profile.products && profile.products.length > 0 ? (
+          <ProductCards products={profile.products} theme={theme} />
+        ) : null}
+
+        {profile.email_capture_enabled && profile.email_capture_heading ? (
+          <EmailCaptureBlock
+            username={profile.username}
+            heading={profile.email_capture_heading}
+            theme={theme}
+          />
+        ) : null}
 
         <nav className="flex flex-col gap-3" aria-label="Profile links">
           {links.length === 0 ? (
@@ -220,17 +241,30 @@ function ProfileContent({ profile }: { profile: PublicProfile }) {
               No links yet.
             </p>
           ) : (
-            links.map((link) => (
-              <ProfileLink
-                key={link.id}
-                linkId={link.id}
-                label={link.title}
-                url={link.url}
-                icon={link.icon}
-                featured={link.is_featured}
-                theme={theme}
-              />
-            ))
+            links.map((link) =>
+              link.type === "youtube_embed" || link.type === "spotify_embed" ? (
+                link.embed_src ? (
+                  <ProfileEmbedBlock
+                    key={link.id}
+                    title={link.title}
+                    type={link.type}
+                    embedSrc={link.embed_src}
+                    embedHeight={link.embed_height}
+                    theme={theme}
+                  />
+                ) : null
+              ) : (
+                <ProfileLink
+                  key={link.id}
+                  linkId={link.id}
+                  label={link.title}
+                  url={link.url}
+                  icon={link.icon}
+                  featured={link.is_featured}
+                  theme={theme}
+                />
+              )
+            )
           )}
         </nav>
 

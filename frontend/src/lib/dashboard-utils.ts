@@ -98,7 +98,7 @@ export function buildProfileChecklist(profile: Profile, links: Link[]): ProfileC
   const hasCover = theme.backgroundType === "image" || theme.backgroundType === "gradient";
 
   return [
-    { id: "photo", label: "Profile photo", done: Boolean(profile.avatar_url), href: "/dashboard/settings" },
+    { id: "photo", label: "Profile photo", done: Boolean(profile.avatar_public_id), href: "/dashboard/settings" },
     { id: "cover", label: "Cover image", done: hasCover, href: "/dashboard/appearance" },
     { id: "bio", label: "Bio", done: Boolean(profile.bio?.trim()), href: "/dashboard/settings" },
     { id: "social", label: "Social links", done: links.length > 0, href: "/dashboard/links" },
@@ -165,7 +165,7 @@ export function buildGrowthSuggestions(profile: Profile, links: Link[]): GrowthS
   const theme = normalizeTheme(profile.theme_settings);
   const suggestions: GrowthSuggestion[] = [];
 
-  if (!profile.avatar_url) {
+  if (!profile.avatar_public_id) {
     suggestions.push({
       id: "avatar",
       message: "Add a profile photo so visitors recognize you instantly.",

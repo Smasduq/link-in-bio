@@ -25,6 +25,32 @@ def _site_label() -> str:
     return host.replace("www.", "")
 
 
+def email_logo_url() -> str:
+    """Public logo PNG — must be reachable at {FRONTEND_URL}/logo.png for email clients."""
+    return f"{settings.frontend_url.rstrip('/')}/logo.png"
+
+
+def _email_header() -> str:
+    logo_url = email_logo_url()
+    home_url = settings.frontend_url.rstrip("/")
+    return f"""
+          <tr>
+            <td align="center" style="padding: 32px 32px 24px;
+                background: linear-gradient(180deg, {EMERALD_50} 0%, {BG_CARD} 100%);">
+              <a href="{home_url}" style="text-decoration: none; display: inline-block;">
+                <img src="{logo_url}" alt="{SITE_NAME}" width="220" height="38"
+                     style="display: block; max-width: 220px; width: 220px; height: auto; border: 0; outline: none;" />
+              </a>
+            </td>
+          </tr>
+    """
+
+
+def transactional_email_html(*, title: str, content: str, preheader: str = "") -> str:
+    """Full branded HTML wrapper for any transactional email."""
+    return _layout(title=title, content=content, preheader=preheader)
+
+
 def _button(href: str, label: str) -> str:
     return f"""
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 28px 0 0;">
@@ -82,23 +108,7 @@ def _layout(*, title: str, content: str, preheader: str = "") -> str:
                       border: 1px solid {BORDER}; overflow: hidden;
                       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);">
           <!-- Header -->
-          <tr>
-            <td style="padding: 32px 32px 24px; background: linear-gradient(180deg, {EMERALD_50} 0%, {BG_CARD} 100%);">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                <tr>
-                  <td style="width: 36px; height: 36px; background-color: {EMERALD_600}; border-radius: 12px;
-                             text-align: center; vertical-align: middle;">
-                    <span style="font-family: {FONT_STACK}; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 36px;">S</span>
-                  </td>
-                  <td style="padding-left: 12px; vertical-align: middle;">
-                    <span style="font-family: {FONT_STACK}; font-size: 18px; font-weight: 700; color: {TEXT_PRIMARY};">
-                      {SITE_NAME}
-                    </span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+          {_email_header()}
           <!-- Body -->
           <tr>
             <td style="padding: 8px 32px 32px; font-family: {FONT_STACK};">
