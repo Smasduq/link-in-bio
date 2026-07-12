@@ -10,6 +10,8 @@ from app.models.analytics import LinkClick, PageView
 from app.models.link import Link
 from app.models.user import User
 from app.schemas.analytics import AnalyticsOverview, AnalyticsResponse, DailyStat, LinkAnalytics
+from app.services.unique_visitors import get_unique_visitors_by_day, get_unique_visitors_total
+from app.services.visitor_insights import get_visitor_insights
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -117,7 +119,10 @@ def get_analytics(
             total_link_clicks=total_link_clicks,
             views_last_7_days=views_last_7_days,
             clicks_last_7_days=clicks_last_7_days,
+            unique_visitors_total=get_unique_visitors_total(db, profile.id),
+            unique_visitors_by_day=get_unique_visitors_by_day(db, profile.id),
         ),
         links=link_analytics,
         daily_stats=daily_stats,
+        visitor_insights=get_visitor_insights(db, current_user.id, profile.id),
     )

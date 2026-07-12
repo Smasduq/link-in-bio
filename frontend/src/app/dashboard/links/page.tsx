@@ -32,21 +32,21 @@ function SortableLinkItem({
   const style = { transform: CSS.Transform.toString(transform), transition };
 
   return (
-    <div ref={setNodeRef} style={style} className={cn("transition-opacity", !link.is_active && "opacity-50")}>
+    <div ref={setNodeRef} style={style} className={cn("min-w-0 transition-opacity", !link.is_active && "opacity-50")}>
       <Card className="hover:-translate-y-0.5">
-        <CardContent className="flex items-center gap-3 p-4">
-          <button {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-emerald-600" aria-label="Drag to reorder">
+        <CardContent className="flex items-center gap-2 p-4 md:gap-3 md:p-6">
+          <button {...attributes} {...listeners} className="shrink-0 cursor-grab text-muted-foreground hover:text-emerald-600" aria-label="Drag to reorder">
             <GripVertical className="h-5 w-5" />
           </button>
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50">
-            {link.icon ? <img src={link.icon} alt="" className="h-5 w-5 object-contain" /> : <LinkIcon className="h-5 w-5" />}
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 md:h-11 md:w-11">
+            {link.icon ? <img src={link.icon} alt="" className="h-4 w-4 object-contain md:h-5 md:w-5" /> : <LinkIcon className="h-4 w-4 md:h-5 md:w-5" />}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">{link.title}</p>
             <p className="truncate text-xs text-muted-foreground">{link.url}</p>
-            <p className="mt-0.5 text-xs font-medium text-emerald-600">{link.click_count} clicks</p>
+            <p className="mt-0.5 truncate text-xs font-medium text-emerald-600">{link.click_count} clicks</p>
           </div>
-          <div className="flex gap-1">
+          <div className="flex shrink-0 gap-0.5 md:gap-1">
             <Button variant="ghost" size="icon" onClick={() => onToggle(link.id, !link.is_active)} aria-label={link.is_active ? "Hide" : "Show"}>
               {link.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>

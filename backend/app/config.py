@@ -29,8 +29,25 @@ class Settings(BaseSettings):
     smtp_use_ssl: bool = False
     otp_expire_minutes: int = 10
 
-    # Offline GeoIP — download GeoLite2-Country.mmdb from MaxMind (free account)
+    # Offline GeoIP — absolute path recommended; relative paths resolve from backend/
+    # Default fallback: backend/app/services/GeoLite2-Country.mmdb
     geolite2_country_path: str = ""
+
+    # Paystack billing
+    paystack_secret_key: str = ""
+    paystack_public_key: str = ""
+    paystack_monthly_base_amount_ngn: float = 500
+    paystack_yearly_discount_percent: float = 15.0
+
+    @property
+    def paystack_yearly_base_amount_ngn(self) -> float:
+        """Yearly plan = 12× monthly minus the configured discount (default 15%)."""
+        discount = self.paystack_yearly_discount_percent / 100
+        return round(self.paystack_monthly_base_amount_ngn * 12 * (1 - discount), 2)
+
+    @property
+    def paystack_configured(self) -> bool:
+        return bool(self.paystack_secret_key and self.paystack_public_key)
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -42,3 +59,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+SITE_NAME = "Smasduq LinkBio"

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models.user import User
 from app.services.auth import decode_access_token
+from app.services.billing import get_current_user_premium_status
 
 security = HTTPBearer(auto_error=False)
 
@@ -28,6 +29,16 @@ def get_current_user(
     )
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
+
+
+def require_active_premium(user: User = Depends(get_current_user)) -> User:
+    status_info = get_current_user_premium_status(user)
+    if not status_info["is_premium"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Pro plan required for this feature",
+        )
     return user
 
 

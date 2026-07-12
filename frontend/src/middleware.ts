@@ -7,8 +7,9 @@ export function middleware(request: NextRequest) {
   const token = rawToken ? decodeURIComponent(rawToken) : null;
 
   if (!isAuthTokenValid(token)) {
+    const currentPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     const signInUrl = new URL("/sign-in", request.url);
-    signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
+    signInUrl.searchParams.set("redirect", currentPath);
     if (token) {
       signInUrl.searchParams.set("reason", "session-expired");
     }
@@ -23,5 +24,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/upgrade"],
 };

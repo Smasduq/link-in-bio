@@ -1,6 +1,6 @@
 import type { AnalyticsResponse, DailyStat, Link, LinkAnalytics, Profile } from "@/types/database";
 import { detectPlatform } from "@/lib/social";
-import { FONT_PRESETS, normalizeTheme } from "@/lib/profile-theme";
+import { getThemeLabelFromSettings, normalizeTheme } from "@/lib/profile-theme";
 
 export type DashboardPeriod = "today" | "7d" | "30d" | "90d" | "all";
 
@@ -22,11 +22,6 @@ export function formatPercent(value: number): string {
 export function computeCtr(views: number, clicks: number): number {
   if (views <= 0) return 0;
   return (clicks / views) * 100;
-}
-
-export function estimateUniqueVisitors(views: number): number {
-  if (views <= 0) return 0;
-  return Math.max(1, Math.round(views * 0.72));
 }
 
 export function sparklinePoints(values: number[], width = 80, height = 32): string {
@@ -261,8 +256,10 @@ export function getPublicUrl(username: string): string {
 
 export function getThemeLabel(profile: Profile): string {
   const theme = normalizeTheme(profile.theme_settings);
-  const font = FONT_PRESETS[theme.fontFamily]?.label ?? "Custom";
+  if (theme.presetId) return getThemeLabelFromSettings(theme);
+  const font = theme.fontDisplay || "Custom";
   if (theme.backgroundType === "gradient") return `${font} · Gradient`;
   if (theme.backgroundType === "image") return `${font} · Image`;
+  if (theme.backgroundType === "pattern") return `${font} · Pattern`;
   return `${font} · Solid`;
 }

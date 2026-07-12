@@ -3,14 +3,16 @@
 import { ExternalLink, MousePointerClick } from "lucide-react";
 import { Link as LinkType, ThemeSettings } from "@/types/database";
 import { trackLinkClick } from "@/lib/track-click";
-import { getLinkButtonStyle, normalizeTheme } from "@/lib/profile-theme";
+import { getLinkButtonStyle, getLinkIconColor, normalizeTheme } from "@/lib/profile-theme";
 import { cn } from "@/lib/utils";
 import { detectPlatform } from "@/lib/social";
 
 export default function LinkButton({ link, theme: rawTheme }: { link: LinkType; theme: ThemeSettings }) {
   const theme = normalizeTheme(rawTheme);
   const PlatformIcon = detectPlatform(link.url).icon;
-  const buttonStyle = getLinkButtonStyle(theme);
+  const featured = link.is_featured;
+  const buttonStyle = getLinkButtonStyle(theme, { featured });
+  const iconColor = getLinkIconColor(theme, featured);
 
   const handleClick = () => {
     trackLinkClick(link.id);
@@ -22,15 +24,15 @@ export default function LinkButton({ link, theme: rawTheme }: { link: LinkType; 
       target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}
-      className={cn("group relative flex w-full items-center gap-4 overflow-hidden border px-5 py-4 transition-all duration-300 hover:scale-[1.02]")}
+      className={cn("profile-link group relative flex w-full items-center gap-4 overflow-hidden border px-5 py-4 transition-all duration-300 hover:scale-[1.02]")}
       style={buttonStyle}
     >
-      <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10">
+      <span className="profile-link-icon relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10">
         {link.icon ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={link.icon} alt="" className="h-5 w-5 object-contain" />
         ) : (
-          <PlatformIcon className="h-5 w-5" style={{ color: theme.buttonStyle === "outline" ? theme.accentColor : "#fff" }} />
+          <PlatformIcon className="h-5 w-5" style={{ color: iconColor }} />
         )}
       </span>
       <span className="relative flex-1 text-left">

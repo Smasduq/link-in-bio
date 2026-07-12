@@ -4,16 +4,17 @@ import Script from "next/script";
 import type { Metadata } from "next";
 import { Globe } from "lucide-react";
 import { detectPlatform } from "@/lib/social";
-import { getLinkButtonStyle, normalizeTheme } from "@/lib/profile-theme";
+import { getLinkButtonStyle, getLinkIconColor, getUsernameStyle, normalizeTheme } from "@/lib/profile-theme";
 import { ClaimUsernameState } from "@/components/public/claim-username-state";
 import { ProfileThemeShell } from "@/components/public/profile-theme-shell";
 import { TrackedProfileLink } from "@/components/public/tracked-profile-link";
+import { BrandWordmark } from "@/components/brand/logo";
 import type { PublicProfile, ThemeSettings } from "@/types/database";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const revalidate = 60;
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://link.smasduq.xyz";
 
 type PageProps = {
   params: { username: string };
@@ -40,14 +41,14 @@ function sortLinks(links: PublicProfile["links"]) {
 function profileMetadata(profile: PublicProfile): Metadata {
   const displayName = profile.full_name || `@${profile.username}`;
   const description =
-    profile.bio?.trim() || `Visit ${displayName}'s LinkBio page — links, socials, and more in one place.`;
+    profile.bio?.trim() || `Visit ${displayName}'s ${SITE_NAME} page — links, socials, and more in one place.`;
   const ogImage = profile.avatar_url || `${SITE_URL}/logo.png`;
 
   return {
-    title: `${displayName} | LinkBio`,
+    title: `${displayName} | ${SITE_NAME}`,
     description,
     openGraph: {
-      title: `${displayName} | LinkBio`,
+      title: `${displayName} | ${SITE_NAME}`,
       description,
       type: "profile",
       url: `${SITE_URL}/${profile.username}`,
@@ -56,13 +57,13 @@ function profileMetadata(profile: PublicProfile): Metadata {
           url: ogImage,
           width: profile.avatar_url ? 400 : 512,
           height: profile.avatar_url ? 400 : 512,
-          alt: `${displayName} on LinkBio`,
+          alt: `${displayName} on ${SITE_NAME}`,
         },
       ],
     },
     twitter: {
       card: profile.avatar_url ? "summary_large_image" : "summary",
-      title: `${displayName} | LinkBio`,
+      title: `${displayName} | ${SITE_NAME}`,
       description,
       images: [ogImage],
     },
@@ -74,15 +75,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const profile = await fetchProfile(params.username);
     if (!profile) {
       return {
-        title: `Claim @${params.username} | LinkBio`,
-        description: `This username is available. Create your free LinkBio page at @${params.username}.`,
+        title: `Claim @${params.username} | ${SITE_NAME}`,
+        description: `This username is available. Create your free ${SITE_NAME} page at @${params.username}.`,
       };
     }
     return profileMetadata(profile);
   } catch {
     return {
-      title: "LinkBio Profile",
-      description: "View this creator's links on LinkBio.",
+      title: `${SITE_NAME} Profile`,
+      description: `View this creator's links on ${SITE_NAME}.`,
     };
   }
 }
@@ -123,18 +124,19 @@ function ProfileLink({
 }) {
   const PlatformIcon = detectPlatform(url).icon;
   const buttonStyle = getLinkButtonStyle(theme, { featured });
+  const iconColor = getLinkIconColor(theme, featured);
 
   return (
     <TrackedProfileLink
       linkId={linkId}
       href={url}
-      className={`group relative flex w-full items-center gap-3 border transition-all duration-200 active:scale-[0.99] ${
+      className={`profile-link group relative flex w-full items-center gap-3 border transition-all duration-200 active:scale-[0.99] ${
         featured ? "px-5 py-5 text-base" : "px-4 py-3.5 text-sm"
       }`}
       style={buttonStyle}
     >
       <span
-        className={`flex shrink-0 items-center justify-center rounded-lg ${
+        className={`profile-link-icon flex shrink-0 items-center justify-center rounded-lg ${
           featured ? "h-11 w-11 bg-white/20" : "h-9 w-9 bg-white/10"
         }`}
       >
@@ -144,12 +146,15 @@ function ProfileLink({
         ) : (
           <PlatformIcon
             className={featured ? "h-5 w-5" : "h-4 w-4"}
-            style={{ color: theme.buttonStyle === "outline" ? theme.accentColor : "#ffffff" }}
+            style={{ color: iconColor }}
           />
         )}
       </span>
       <span className={`flex-1 text-left font-semibold ${featured ? "text-base" : "text-sm"}`}>{label}</span>
-      <Globe className={`shrink-0 opacity-0 transition-opacity group-hover:opacity-60 ${featured ? "h-4 w-4" : "h-3.5 w-3.5"}`} />
+      <Globe
+        className={`shrink-0 opacity-0 transition-opacity group-hover:opacity-60 ${featured ? "h-4 w-4" : "h-3.5 w-3.5"}`}
+        style={{ color: iconColor }}
+      />
     </TrackedProfileLink>
   );
 }
@@ -170,7 +175,7 @@ function ProfileContent({ profile }: { profile: PublicProfile }) {
         <header className="mb-8 flex flex-col items-center text-center">
           <div className="relative mb-4">
             <div
-              className="absolute -inset-1 rounded-full opacity-70 blur-sm"
+              className="profile-avatar-ring absolute -inset-1 rounded-full opacity-70 blur-sm"
               style={{ background: `linear-gradient(135deg, ${theme.accentColor}, transparent)` }}
             />
             <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 border-white/10 bg-white/5 shadow-lg sm:h-28 sm:w-28">
@@ -194,20 +199,24 @@ function ProfileContent({ profile }: { profile: PublicProfile }) {
             </div>
           </div>
 
-          <h1 className="font-display text-xl font-bold sm:text-2xl" style={{ color: theme.accentColor }}>
+          <h1 className="profile-username text-xl font-bold sm:text-2xl" style={getUsernameStyle(theme)}>
             @{profile.username}
           </h1>
           {profile.full_name && (
-            <p className="mt-1 text-base font-semibold text-white/90 sm:text-lg">{profile.full_name}</p>
+            <p className="mt-1 text-base font-semibold opacity-90 sm:text-lg" style={{ color: theme.textColor }}>
+              {profile.full_name}
+            </p>
           )}
           {profile.bio && (
-            <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/70">{profile.bio}</p>
+            <p className="profile-bio mt-3 max-w-sm text-sm leading-relaxed opacity-70" style={{ color: theme.textColor }}>
+              {profile.bio}
+            </p>
           )}
         </header>
 
         <nav className="flex flex-col gap-3" aria-label="Profile links">
           {links.length === 0 ? (
-            <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/60">
+            <p className="rounded-xl border px-4 py-6 text-center text-sm opacity-60" style={{ borderColor: `${theme.textColor}22`, color: theme.textColor }}>
               No links yet.
             </p>
           ) : (
@@ -225,9 +234,12 @@ function ProfileContent({ profile }: { profile: PublicProfile }) {
           )}
         </nav>
 
-        <footer className="mt-10 text-center">
-          <Link href="/" className="text-xs text-white/40 transition-colors hover:text-white/70">
-            Powered by LinkBio
+        <footer className="mt-10 flex flex-col items-center gap-1.5 text-center">
+          <span className="text-xs opacity-40" style={{ color: theme.textColor }}>
+            Powered by
+          </span>
+          <Link href="/" className="opacity-50 transition-opacity hover:opacity-80">
+            <BrandWordmark height={18} color={theme.textColor} />
           </Link>
         </footer>
       </div>

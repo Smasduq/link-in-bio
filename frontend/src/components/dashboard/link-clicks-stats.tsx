@@ -17,11 +17,11 @@ export function LinkClicksStats({ links }: LinkClicksStatsProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <BarChart2 className="h-5 w-5 text-emerald-600" />
-          Clicks by link
+        <CardTitle className="flex min-w-0 items-center gap-2 text-base">
+          <BarChart2 className="h-4 w-4 shrink-0 text-emerald-600 md:h-5 md:w-5" />
+          <span className="truncate">Clicks by link</span>
         </CardTitle>
-        <Link href="/dashboard/analytics" className="text-sm font-medium text-emerald-600 hover:underline">
+        <Link href="/dashboard/analytics" className="shrink-0 text-sm font-medium text-emerald-600 hover:underline">
           Full insights
         </Link>
       </CardHeader>

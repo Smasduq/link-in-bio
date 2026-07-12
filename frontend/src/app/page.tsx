@@ -7,6 +7,8 @@ import Navbar from "@/components/Navbar/Navbar";
 import { FinalCtaFaqSection } from "@/components/landing/final-cta-faq";
 import { HeroSection } from "@/components/landing/hero-section";
 import { Card, CardContent } from "@/components/ui/card";
+import { SITE_NAME } from "@/lib/site";
+import { BrandWordmark } from "@/components/brand/logo";
 
 const features = [
   {
@@ -69,8 +71,9 @@ export default function LandingPage() {
         <FinalCtaFaqSection />
       </main>
 
-      <footer className="finale-footer">
-        © 2026 LinkBio. All rights reserved.
+      <footer className="finale-footer flex flex-col items-center gap-2">
+        <BrandWordmark height={22} />
+        <span>© 2026 {SITE_NAME}. All rights reserved.</span>
       </footer>
     </div>
   );

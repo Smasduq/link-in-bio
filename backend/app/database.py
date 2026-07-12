@@ -49,6 +49,50 @@ def init_db() -> None:
     _migrate_postgres_schema()
 
 
+def _migrate_page_views_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(page_views)")).fetchall()
+        names = {row[1] for row in columns}
+        if "device_type" not in names:
+            conn.execute(
+                text("ALTER TABLE page_views ADD COLUMN device_type VARCHAR(20) NOT NULL DEFAULT 'desktop'")
+            )
+        if "country" not in names:
+            conn.execute(text("ALTER TABLE page_views ADD COLUMN country VARCHAR(2)"))
+        if "visitor_hash" not in names:
+            conn.execute(text("ALTER TABLE page_views ADD COLUMN visitor_hash VARCHAR(64)"))
+        conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_page_views_visitor_hash ON page_views (visitor_hash)")
+        )
+        return
+
+    for column, ddl in (
+        ("device_type", "ALTER TABLE page_views ADD COLUMN device_type VARCHAR(20) NOT NULL DEFAULT 'desktop'"),
+        ("country", "ALTER TABLE page_views ADD COLUMN country VARCHAR(2)"),
+        ("visitor_hash", "ALTER TABLE page_views ADD COLUMN visitor_hash VARCHAR(64)"),
+    ):
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'page_views' AND column_name = :column
+                """
+            ),
+            {"column": column},
+        ).fetchone()
+        if not row:
+            conn.execute(text(ddl))
+
+    conn.execute(
+        text(
+            """
+            CREATE INDEX IF NOT EXISTS ix_page_views_visitor_hash
+            ON page_views (visitor_hash)
+            """
+        )
+    )
+
+
 def _migrate_link_clicks_schema(conn, is_sqlite: bool) -> None:
     if is_sqlite:
         columns = conn.execute(text("PRAGMA table_info(link_clicks)")).fetchall()
@@ -93,6 +137,59 @@ def _migrate_link_clicks_schema(conn, is_sqlite: bool) -> None:
     )
 
 
+def _migrate_users_billing_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+        names = {row[1] for row in columns}
+        additions = [
+            ("is_premium", "ALTER TABLE users ADD COLUMN is_premium BOOLEAN NOT NULL DEFAULT 0"),
+            ("premium_plan", "ALTER TABLE users ADD COLUMN premium_plan VARCHAR(20)"),
+            ("premium_period_end", "ALTER TABLE users ADD COLUMN premium_period_end DATETIME"),
+            ("paystack_subscription_code", "ALTER TABLE users ADD COLUMN paystack_subscription_code VARCHAR(255)"),
+            ("paystack_customer_code", "ALTER TABLE users ADD COLUMN paystack_customer_code VARCHAR(255)"),
+            ("last_paystack_reference", "ALTER TABLE users ADD COLUMN last_paystack_reference VARCHAR(255)"),
+        ]
+        for column, ddl in additions:
+            if column not in names:
+                conn.execute(text(ddl))
+        conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_users_paystack_subscription_code "
+                "ON users (paystack_subscription_code)"
+            )
+        )
+        return
+
+    for column, ddl in (
+        ("is_premium", "ALTER TABLE users ADD COLUMN is_premium BOOLEAN NOT NULL DEFAULT false"),
+        ("premium_plan", "ALTER TABLE users ADD COLUMN premium_plan VARCHAR(20)"),
+        ("premium_period_end", "ALTER TABLE users ADD COLUMN premium_period_end TIMESTAMPTZ"),
+        ("paystack_subscription_code", "ALTER TABLE users ADD COLUMN paystack_subscription_code VARCHAR(255)"),
+        ("paystack_customer_code", "ALTER TABLE users ADD COLUMN paystack_customer_code VARCHAR(255)"),
+        ("last_paystack_reference", "ALTER TABLE users ADD COLUMN last_paystack_reference VARCHAR(255)"),
+    ):
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = :column
+                """
+            ),
+            {"column": column},
+        ).fetchone()
+        if not row:
+            conn.execute(text(ddl))
+
+    conn.execute(
+        text(
+            """
+            CREATE INDEX IF NOT EXISTS ix_users_paystack_subscription_code
+            ON users (paystack_subscription_code)
+            """
+        )
+    )
+
+
 def _migrate_postgres_schema() -> None:
     if _is_sqlite:
         return
@@ -110,6 +207,8 @@ def _migrate_postgres_schema() -> None:
             conn.execute(text("ALTER TABLE links ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT false"))
 
         _migrate_link_clicks_schema(conn, is_sqlite=False)
+        _migrate_page_views_schema(conn, is_sqlite=False)
+        _migrate_users_billing_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -131,3 +230,5 @@ def _migrate_sqlite_schema() -> None:
             conn.execute(text("ALTER TABLE links ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT 0"))
 
         _migrate_link_clicks_schema(conn, is_sqlite=True)
+        _migrate_page_views_schema(conn, is_sqlite=True)
+        _migrate_users_billing_schema(conn, is_sqlite=True)

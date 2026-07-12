@@ -1,13 +1,16 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError
 
-from app.config import settings
-from app.database import ensure_db
-from app.routers import analytics, auth, links, profile, public
+from app.config import SITE_NAME, settings
+from app.database import ensure_db, SessionLocal
+from app.routers import analytics, auth, billing, links, profile, public
+from app.services.geoip import close_geoip, init_geoip, resolve_geolite2_db_path
+from app.services.plan_catalog import ensure_billing_plans
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,7 +19,39 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="LinkBio API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    try:
+        ensure_db()
+        logger.info("Database ready")
+        db = SessionLocal()
+        try:
+            await ensure_billing_plans(db)
+            logger.info("Billing plans synced")
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("Database init failed on startup")
+
+    init_geoip()
+    logger.info("GeoLite2 database path: %s", resolve_geolite2_db_path())
+
+    logger.info(
+        "SMTP configured: host=%s port=%s user=%s from=%s password_set=%s",
+        settings.smtp_host or "(missing)",
+        settings.smtp_port,
+        settings.smtp_user or "(missing)",
+        settings.mail_from or "(missing)",
+        bool(settings.smtp_password),
+    )
+
+    yield
+
+    close_geoip()
+
+
+app = FastAPI(title=f"{SITE_NAME} API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +66,7 @@ app.include_router(profile.router, prefix="/api")
 app.include_router(links.router, prefix="/api")
 app.include_router(public.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
+app.include_router(billing.router, prefix="/api")
 
 
 @app.exception_handler(OperationalError)
@@ -39,24 +75,6 @@ async def database_error_handler(_request: Request, exc: OperationalError):
     return JSONResponse(
         status_code=503,
         content={"detail": "Database unavailable. Check your DATABASE_URL or try again shortly."},
-    )
-
-
-@app.on_event("startup")
-def on_startup() -> None:
-    try:
-        ensure_db()
-        logger.info("Database ready")
-    except Exception:
-        logger.exception("Database init failed on startup")
-
-    logger.info(
-        "SMTP configured: host=%s port=%s user=%s from=%s password_set=%s",
-        settings.smtp_host or "(missing)",
-        settings.smtp_port,
-        settings.smtp_user or "(missing)",
-        settings.mail_from or "(missing)",
-        bool(settings.smtp_password),
     )
 
 

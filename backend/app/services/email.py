@@ -4,7 +4,7 @@ import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from app.config import settings
+from app.config import SITE_NAME, settings
 from app.services.email_templates import (
     otp_email_html,
     password_reset_email_html,
@@ -98,9 +98,9 @@ def send_welcome_email(*, to: str, username: str) -> bool:
 
     sent, _ = send_email(
         to=to,
-        subject="Welcome to LinkBio — your page is live",
+        subject=f"Welcome to {SITE_NAME} — your page is live",
         html_body=html,
-        text_body=f"Welcome to LinkBio, @{username}! Your page is live: {profile_url}",
+        text_body=f"Welcome to {SITE_NAME}, @{username}! Your page is live: {profile_url}",
     )
     return sent
 
@@ -110,9 +110,9 @@ def send_password_reset_email(*, to: str, reset_url: str) -> bool:
 
     sent, _ = send_email(
         to=to,
-        subject="Reset your LinkBio password",
+        subject=f"Reset your {SITE_NAME} password",
         html_body=html,
-        text_body=f"Reset your LinkBio password: {reset_url}",
+        text_body=f"Reset your {SITE_NAME} password: {reset_url}",
     )
     return sent
 
@@ -123,7 +123,7 @@ def send_otp_email(*, to: str, otp: str, purpose: str) -> tuple[bool, str | None
 
     return send_email(
         to=to,
-        subject=f"{otp} is your LinkBio verification code",
+        subject=f"{otp} is your {SITE_NAME} verification code",
         html_body=html,
-        text_body=f"Your LinkBio verification code is {otp}. Use it to {action}. It expires in {settings.otp_expire_minutes} minutes.",
+        text_body=f"Your {SITE_NAME} verification code is {otp}. Use it to {action}. It expires in {settings.otp_expire_minutes} minutes.",
     )
