@@ -150,6 +150,8 @@ def _migrate_users_billing_schema(conn, is_sqlite: bool) -> None:
             ("paystack_email_token", "ALTER TABLE users ADD COLUMN paystack_email_token VARCHAR(255)"),
             ("subscription_status", "ALTER TABLE users ADD COLUMN subscription_status VARCHAR(20)"),
             ("premium_grace_until", "ALTER TABLE users ADD COLUMN premium_grace_until DATETIME"),
+            ("renewal_type", "ALTER TABLE users ADD COLUMN renewal_type VARCHAR(10)"),
+            ("manual_renewal_reminder_sent_at", "ALTER TABLE users ADD COLUMN manual_renewal_reminder_sent_at DATETIME"),
             ("last_paystack_reference", "ALTER TABLE users ADD COLUMN last_paystack_reference VARCHAR(255)"),
         ]
         for column, ddl in additions:
@@ -172,6 +174,8 @@ def _migrate_users_billing_schema(conn, is_sqlite: bool) -> None:
         ("paystack_email_token", "ALTER TABLE users ADD COLUMN paystack_email_token VARCHAR(255)"),
         ("subscription_status", "ALTER TABLE users ADD COLUMN subscription_status VARCHAR(20)"),
         ("premium_grace_until", "ALTER TABLE users ADD COLUMN premium_grace_until TIMESTAMPTZ"),
+        ("renewal_type", "ALTER TABLE users ADD COLUMN renewal_type VARCHAR(10)"),
+        ("manual_renewal_reminder_sent_at", "ALTER TABLE users ADD COLUMN manual_renewal_reminder_sent_at TIMESTAMPTZ"),
         ("last_paystack_reference", "ALTER TABLE users ADD COLUMN last_paystack_reference VARCHAR(255)"),
     ):
         row = conn.execute(

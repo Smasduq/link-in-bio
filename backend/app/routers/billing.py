@@ -62,6 +62,7 @@ async def initialize_billing(
             plan_slug=body.plan,
             user_id=user.id,
             callback_url=callback_url,
+            auto_renew=body.auto_renew,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc

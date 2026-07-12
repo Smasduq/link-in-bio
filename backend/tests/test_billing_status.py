@@ -144,3 +144,62 @@ def test_mark_past_due_sets_grace_window():
     mark_subscription_past_due(db, user)
     assert user.subscription_status == "past_due"
     assert user.premium_grace_until is not None
+
+
+def test_one_time_charge_sets_manual_renewal():
+    user = _user()
+    db = MagicMock()
+    paid_at = datetime.now(timezone.utc)
+    with patch("app.services.billing._find_user_for_event", return_value=user):
+        handle_paystack_event(
+            db,
+            {
+                "event": "charge.success",
+                "data": {
+                    "reference": "ref_manual",
+                    "paid_at": paid_at.isoformat(),
+                    "metadata": {"plan": "monthly", "auto_renew": False},
+                    "customer": {"email": user.email},
+                },
+            },
+        )
+
+    assert user.renewal_type == "manual"
+    assert user.is_premium is True
+    assert user.paystack_subscription_code is None
+    assert user.premium_period_end is not None
+
+
+def test_subscription_charge_sets_auto_renewal():
+    user = _user(paystack_subscription_code=None, paystack_email_token=None)
+    db = MagicMock()
+    with patch("app.services.billing._find_user_for_event", return_value=user):
+        handle_paystack_event(
+            db,
+            {
+                "event": "charge.success",
+                "data": {
+                    "reference": "ref_auto",
+                    "paid_at": datetime.now(timezone.utc).isoformat(),
+                    "metadata": {"plan": "yearly", "auto_renew": True},
+                    "plan": {"plan_code": "PLN_test"},
+                    "subscription": {"subscription_code": "SUB_new", "email_token": "tok_new"},
+                    "customer": {"email": user.email},
+                },
+            },
+        )
+
+    assert user.renewal_type == "auto"
+    assert user.paystack_subscription_code == "SUB_new"
+    assert user.paystack_email_token == "tok_new"
+
+
+def test_manual_user_downgrades_after_period_end():
+    user = _user(
+        renewal_type="manual",
+        premium_period_end=datetime.now(timezone.utc) - timedelta(minutes=1),
+    )
+    db = MagicMock()
+    status = get_current_user_premium_status(user, db)
+    assert status["is_premium"] is False
+    assert user.is_premium is False

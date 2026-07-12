@@ -32,6 +32,7 @@ class PlanPricingResponse(BaseModel):
 
 class InitializeBillingRequest(BaseModel):
     plan: Literal["monthly", "yearly"] = Field(description="Billing interval")
+    auto_renew: bool = Field(default=True, description="Create a recurring Paystack subscription when true")
 
 
 class InitializeBillingResponse(BaseModel):
@@ -61,6 +62,7 @@ class BillingStatusResponse(BaseModel):
     plan: str
     is_premium: bool
     premium_until: datetime | None = None
+    renewal_type: str | None = None
     subscription_status: str | None = None
     can_cancel: bool = False
     is_cancelled_pending_expiry: bool = False

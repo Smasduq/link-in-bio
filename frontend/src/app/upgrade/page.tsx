@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   Check,
@@ -30,10 +30,12 @@ type PaymentState = "idle" | "loading" | "success" | "error";
 
 export default function UpgradePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [planPricing, setPlanPricing] = useState<PlanPricingItem[]>([]);
   const [plan, setPlan] = useState<BillingPlan>("monthly");
+  const [autoRenew, setAutoRenew] = useState(searchParams.get("renew") !== "manual");
   const [paymentState, setPaymentState] = useState<PaymentState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -58,7 +60,7 @@ export default function UpgradePage() {
     try {
       const init = await apiFetch<InitializeBillingResponse>("/api/billing/initialize", {
         method: "POST",
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, auto_renew: autoRenew }),
       });
 
       const PaystackPop = (await import("@paystack/inline-js")).default;
@@ -82,7 +84,7 @@ export default function UpgradePage() {
       setPaymentState("error");
       setErrorMessage(err instanceof Error ? err.message : "Payment could not be started");
     }
-  }, [plan, router, user]);
+  }, [autoRenew, plan, router, user]);
 
   const selectedPlan = planPricing.find((item) => item.slug === plan);
   const yearlyPlan = planPricing.find((item) => item.slug === "yearly");
@@ -187,8 +189,26 @@ export default function UpgradePage() {
 
             {selectedPlan ? (
               <Card className="mx-auto mt-6 max-w-md border-dashed">
-                <CardContent className="space-y-2 p-4 text-sm">
-                  <p className="font-semibold text-foreground">Fee breakdown (computed by server)</p>
+                <CardContent className="space-y-4 p-4 text-sm">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
+                      checked={autoRenew}
+                      onChange={(e) => setAutoRenew(e.target.checked)}
+                    />
+                    <span>
+                      <span className="font-semibold text-foreground">Auto-renew my subscription</span>
+                      <span className="mt-1 block text-muted-foreground">
+                        {autoRenew
+                          ? `On: we'll automatically charge you every ${plan === "monthly" ? "month" : "year"} until you cancel.`
+                          : "Off: you'll pay once and need to manually renew before it expires."}
+                      </span>
+                    </span>
+                  </label>
+
+                  <div className="space-y-2 border-t border-border pt-3">
+                    <p className="font-semibold text-foreground">Fee breakdown (computed by server)</p>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Plan price</span>
                     <span>{formatNgn(selectedPlan.base_amount, 2)}</span>
@@ -204,6 +224,7 @@ export default function UpgradePage() {
                   <div className="flex justify-between border-t border-border pt-2 font-semibold text-foreground">
                     <span>You pay</span>
                     <span>{formatNgn(selectedPlan.total_charge, 2)}</span>
+                  </div>
                   </div>
                 </CardContent>
               </Card>
@@ -223,7 +244,7 @@ export default function UpgradePage() {
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                 Secure payment via Paystack
               </span>
-              <span>Cancel anytime</span>
+              <span>{autoRenew ? "Cancel anytime" : "One-time payment — renew manually before expiry"}</span>
               <span className="inline-flex items-center gap-1.5">
                 <CreditCard className="h-3.5 w-3.5" />
                 Cards, bank transfer &amp; USSD

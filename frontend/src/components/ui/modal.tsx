@@ -11,12 +11,14 @@ export function Modal({
   title,
   children,
   className,
+  dismissible = true,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
   className?: string;
+  dismissible?: boolean;
 }) {
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -27,7 +29,11 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm"
+        onClick={dismissible ? onClose : undefined}
+        aria-hidden="true"
+      />
       <div
         role="dialog"
         aria-modal="true"
@@ -39,9 +45,13 @@ export function Modal({
       >
         <div className="mb-6 flex items-center justify-between">
           <h2 id="modal-title" className="font-display text-xl font-semibold">{title}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-            <X className="h-4 w-4" />
-          </Button>
+          {dismissible ? (
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+              <X className="h-4 w-4" />
+            </Button>
+          ) : (
+            <span className="w-10" aria-hidden />
+          )}
         </div>
         {children}
       </div>

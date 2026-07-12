@@ -149,3 +149,21 @@ def send_payment_failed_email(*, to: str, grace_until: datetime, plan: str) -> b
         ),
     )
     return sent
+
+
+def send_manual_renewal_reminder_email(*, to: str, expires_at: datetime, plan: str) -> bool:
+    expiry_text = expires_at.astimezone(timezone.utc).strftime("%B %d, %Y")
+    renew_url = f"{settings.frontend_url.rstrip('/')}/upgrade?renew=manual"
+    html = f"""
+    <p>Hi,</p>
+    <p>Your {SITE_NAME} Pro ({plan}) access expires on <strong>{expiry_text}</strong>.</p>
+    <p>Renew with a one-time payment to keep your premium themes and analytics without interruption.</p>
+    <p><a href="{renew_url}">Renew now</a></p>
+    """
+    sent, _ = send_email(
+        to=to,
+        subject=f"Your {SITE_NAME} Pro access expires soon",
+        html_body=html,
+        text_body=f"Your {SITE_NAME} Pro access expires on {expiry_text}. Renew: {renew_url}",
+    )
+    return sent

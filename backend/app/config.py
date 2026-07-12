@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     paystack_monthly_base_amount_ngn: float = 500
     paystack_yearly_discount_percent: float = 15.0
     billing_past_due_grace_days: int = 3
+    billing_manual_renewal_reminder_days: int = 3
 
     @property
     def paystack_yearly_base_amount_ngn(self) -> float:

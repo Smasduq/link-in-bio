@@ -59,6 +59,7 @@ export type BillingStatus = {
   plan: string;
   is_premium: boolean;
   premium_until: string | null;
+  renewal_type: "auto" | "manual" | null;
   subscription_status: string | null;
   can_cancel: boolean;
   is_cancelled_pending_expiry: boolean;

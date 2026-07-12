@@ -21,6 +21,7 @@ PLAN_PERIOD_DAYS = {
 }
 
 SubscriptionStatus = Literal["active", "past_due", "cancelled", "expired"]
+RenewalType = Literal["auto", "manual"]
 
 
 def _utcnow() -> datetime:
@@ -35,6 +36,40 @@ def _as_utc(value: datetime | None) -> datetime | None:
     return value.astimezone(timezone.utc)
 
 
+def _parse_paid_at(data: dict[str, Any]) -> datetime:
+    paid_at = data.get("paid_at") or data.get("paidAt")
+    if isinstance(paid_at, str) and paid_at:
+        return datetime.fromisoformat(paid_at.replace("Z", "+00:00"))
+    if isinstance(paid_at, datetime):
+        return _as_utc(paid_at) or _utcnow()
+    return _utcnow()
+
+
+def _metadata_auto_renew(data: dict[str, Any]) -> bool | None:
+    metadata = data.get("metadata") or {}
+    raw = metadata.get("auto_renew")
+    if raw is None:
+        return None
+    if isinstance(raw, bool):
+        return raw
+    return str(raw).lower() in {"true", "1", "yes"}
+
+
+def _is_subscription_charge(data: dict[str, Any]) -> bool:
+    """True when Paystack created or will create a subscription for this charge."""
+    metadata_pref = _metadata_auto_renew(data)
+    if metadata_pref is False:
+        return False
+    if metadata_pref is True:
+        return True
+    if data.get("plan"):
+        return True
+    subscription = data.get("subscription")
+    if isinstance(subscription, dict) and subscription.get("subscription_code"):
+        return True
+    return False
+
+
 def _access_until(user: User) -> datetime | None:
     period_end = _as_utc(user.premium_period_end)
     grace_until = _as_utc(user.premium_grace_until)
@@ -43,8 +78,38 @@ def _access_until(user: User) -> datetime | None:
     return period_end
 
 
+def maybe_send_manual_renewal_reminder(db: Session, user: User) -> None:
+    if user.renewal_type != "manual" or not user.is_premium or user.manual_renewal_reminder_sent_at:
+        return
+
+    period_end = _as_utc(user.premium_period_end)
+    if period_end is None:
+        return
+
+    now = _utcnow()
+    days_left = (period_end - now).total_seconds() / 86400
+    if days_left > settings.billing_manual_renewal_reminder_days or days_left < 0:
+        return
+
+    try:
+        from app.services.email import send_manual_renewal_reminder_email
+
+        sent = send_manual_renewal_reminder_email(
+            to=user.email,
+            expires_at=period_end,
+            plan=user.premium_plan or "monthly",
+        )
+        if sent:
+            user.manual_renewal_reminder_sent_at = now
+            db.add(user)
+    except Exception:
+        logger.exception("Failed to send manual renewal reminder for user %s", user.id)
+
+
 def sync_subscription_access(db: Session, user: User) -> None:
-    """Downgrade expired cancelled/past_due subscriptions on each status check."""
+    """Downgrade expired subscriptions and one-time plans on each status check."""
+    maybe_send_manual_renewal_reminder(db, user)
+
     if not user.is_premium:
         return
 
@@ -59,11 +124,6 @@ def sync_subscription_access(db: Session, user: User) -> None:
 
 
 def get_current_user_premium_status(user: User, db: Session | None = None) -> dict[str, Any]:
-    """
-    Active premium requires is_premium=True AND access until a future timestamp.
-    Cancelled subscriptions keep access until premium_period_end.
-    Past-due subscriptions keep access until premium_grace_until.
-    """
     if db is not None:
         sync_subscription_access(db, user)
 
@@ -76,11 +136,13 @@ def get_current_user_premium_status(user: User, db: Session | None = None) -> di
         "plan": plan,
         "is_premium": active,
         "premium_until": access_until,
+        "renewal_type": user.renewal_type,
         "subscription_status": user.subscription_status,
         "paystack_subscription_code": user.paystack_subscription_code,
         "last_paystack_reference": user.last_paystack_reference,
         "can_cancel": bool(
-            user.paystack_subscription_code
+            user.renewal_type == "auto"
+            and user.paystack_subscription_code
             and user.paystack_email_token
             and user.subscription_status in {None, "active", "past_due"}
             and active
@@ -141,7 +203,7 @@ def _find_user_for_event(db: Session, data: dict[str, Any]) -> User | None:
     return None
 
 
-def activate_premium(
+def activate_auto_premium(
     db: Session,
     user: User,
     *,
@@ -159,8 +221,10 @@ def activate_premium(
     user.is_premium = True
     user.premium_plan = plan
     user.premium_period_end = base + timedelta(days=days)
+    user.renewal_type = "auto"
     user.subscription_status = "active"
     user.premium_grace_until = None
+    user.manual_renewal_reminder_sent_at = None
     if reference:
         user.last_paystack_reference = reference
     if subscription_code:
@@ -172,14 +236,71 @@ def activate_premium(
     db.add(user)
 
 
+def activate_manual_premium(
+    db: Session,
+    user: User,
+    *,
+    plan: str,
+    reference: str | None = None,
+    paid_at: datetime | None = None,
+    customer_code: str | None = None,
+) -> None:
+    paid = _as_utc(paid_at) or _utcnow()
+    days = PLAN_PERIOD_DAYS.get(plan, 30)
+    current_end = _as_utc(user.premium_period_end)
+    base = current_end if current_end and current_end > paid else paid
+
+    user.is_premium = True
+    user.premium_plan = plan
+    user.premium_period_end = base + timedelta(days=days)
+    user.renewal_type = "manual"
+    user.subscription_status = "active"
+    user.premium_grace_until = None
+    user.manual_renewal_reminder_sent_at = None
+    user.paystack_subscription_code = None
+    user.paystack_email_token = None
+    if reference:
+        user.last_paystack_reference = reference
+    if customer_code:
+        user.paystack_customer_code = customer_code
+    db.add(user)
+
+
+def process_successful_charge(db: Session, user: User, data: dict[str, Any], *, reference: str | None = None) -> None:
+    metadata = data.get("metadata") or {}
+    plan = metadata.get("plan") or user.premium_plan or "monthly"
+
+    if _is_subscription_charge(data):
+        subscription_fields = _extract_subscription_fields(data)
+        activate_auto_premium(
+            db,
+            user,
+            plan=plan,
+            reference=reference or data.get("reference"),
+            subscription_code=subscription_fields["subscription_code"],
+            customer_code=subscription_fields["customer_code"],
+            email_token=subscription_fields["email_token"],
+        )
+        logger.info("Auto-renew premium activated for user %s", user.id)
+        return
+
+    activate_manual_premium(
+        db,
+        user,
+        plan=plan,
+        reference=reference or data.get("reference"),
+        paid_at=_parse_paid_at(data),
+        customer_code=(data.get("customer") or {}).get("customer_code"),
+    )
+    logger.info("One-time premium activated for user %s until %s", user.id, user.premium_period_end)
+
+
 def mark_subscription_cancelled(db: Session, user: User) -> None:
-    """Stop future renewals but keep Pro access until premium_period_end."""
     user.subscription_status = "cancelled"
     db.add(user)
 
 
 def mark_subscription_past_due(db: Session, user: User) -> None:
-    """Failed renewal — keep access through period end plus a short grace window."""
     user.subscription_status = "past_due"
     period_end = _as_utc(user.premium_period_end) or _utcnow()
     grace_base = max(period_end, _utcnow())
@@ -199,19 +320,7 @@ def mark_subscription_past_due(db: Session, user: User) -> None:
 
 
 def apply_verified_transaction(db: Session, user: User, paystack_data: dict[str, Any]) -> None:
-    """Apply premium activation when verify confirms success before the webhook arrives."""
-    metadata = paystack_data.get("metadata") or {}
-    plan = metadata.get("plan") or user.premium_plan or "monthly"
-    subscription_fields = _extract_subscription_fields(paystack_data)
-    activate_premium(
-        db,
-        user,
-        plan=plan,
-        reference=paystack_data.get("reference"),
-        subscription_code=subscription_fields["subscription_code"],
-        customer_code=subscription_fields["customer_code"],
-        email_token=subscription_fields["email_token"],
-    )
+    process_successful_charge(db, user, paystack_data, reference=paystack_data.get("reference"))
 
 
 def handle_paystack_event(db: Session, event: dict[str, Any]) -> None:
@@ -231,27 +340,15 @@ def handle_paystack_event(db: Session, event: dict[str, Any]) -> None:
     if not user:
         return
 
-    subscription_fields = _extract_subscription_fields(data)
-
     if event_type == "charge.success":
-        metadata = data.get("metadata") or {}
-        plan = metadata.get("plan") or user.premium_plan or "monthly"
-        activate_premium(
-            db,
-            user,
-            plan=plan,
-            reference=reference,
-            subscription_code=subscription_fields["subscription_code"],
-            customer_code=subscription_fields["customer_code"],
-            email_token=subscription_fields["email_token"],
-        )
-        logger.info("Premium activated for user %s via charge.success", user.id)
+        process_successful_charge(db, user, data, reference=reference)
         return
 
     if event_type == "subscription.create":
         metadata = data.get("metadata") or {}
         plan = metadata.get("plan") or user.premium_plan or "monthly"
-        activate_premium(
+        subscription_fields = _extract_subscription_fields(data)
+        activate_auto_premium(
             db,
             user,
             plan=plan,
@@ -286,6 +383,7 @@ def billing_status_payload(user: User, db: Session) -> dict[str, Any]:
         "plan": status["plan"],
         "is_premium": status["is_premium"],
         "premium_until": status["premium_until"],
+        "renewal_type": status["renewal_type"],
         "subscription_status": status["subscription_status"],
         "can_cancel": status["can_cancel"],
         "is_cancelled_pending_expiry": status["is_cancelled_pending_expiry"],

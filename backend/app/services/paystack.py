@@ -107,6 +107,7 @@ async def initialize_transaction(
     plan_slug: str,
     user_id: str,
     callback_url: str,
+    auto_renew: bool = True,
 ) -> tuple[dict[str, Any], BillingPlanRecord]:
     from app.services.plan_catalog import get_plan_by_slug
 
@@ -122,16 +123,19 @@ async def initialize_transaction(
         "metadata": {
             "user_id": user_id,
             "plan": plan_slug,
+            "auto_renew": auto_renew,
             "base_amount": plan_record.base_amount,
             "total_charge": plan_record.total_charge,
             "custom_fields": [
                 {"display_name": "Plan", "variable_name": "plan", "value": plan_slug},
                 {"display_name": "User ID", "variable_name": "user_id", "value": user_id},
+                {"display_name": "Auto renew", "variable_name": "auto_renew", "value": str(auto_renew).lower()},
             ],
         },
     }
 
-    if plan_record.paystack_plan_code:
+    # Attaching a Paystack plan code is what triggers subscription creation after payment.
+    if auto_renew and plan_record.paystack_plan_code:
         payload["plan"] = plan_record.paystack_plan_code
 
     response = await _paystack_request("POST", "/transaction/initialize", json=payload)
