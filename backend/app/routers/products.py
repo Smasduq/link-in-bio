@@ -13,6 +13,7 @@ from app.models.product_purchase import ProductPurchase
 from app.models.user import User
 from app.schemas.product import (
     ProductCreate,
+    ProductReorderRequest,
     ProductResponse,
     ProductUpdate,
     PublicProductResponse,
@@ -21,8 +22,9 @@ from app.schemas.product import (
     PurchaseVerifyResponse,
 )
 from app.services.cloudinary_storage import build_public_image_url, upload_product_cover, upload_product_file
+from app.services.content_blocks import effective_layout_mode, next_block_position
 from app.services.fee_pricing import calculate_fee_inclusive_amount
-from app.services.premium_access import assert_can_create_product
+from app.services.premium_access import assert_can_create_product, user_is_premium
 from app.services.product_purchases import fulfill_product_purchase, initialize_product_purchase, purchase_verify_payload
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -53,6 +55,7 @@ def _serialize_product(db: Session, product: Product) -> ProductResponse:
         total_charge=pricing["total_charge"],
         cover_image_url=cover_url,
         file_name=product.file_name,
+        position=product.position or 0,
         is_active=product.is_active,
         sales_count=int(stats[0] or 0),
         revenue=float(stats[1] or 0),
@@ -93,7 +96,7 @@ def list_products(user: User = Depends(get_current_user), db: Session = Depends(
     products = (
         db.query(Product)
         .filter(Product.profile_id == profile.id)
-        .order_by(Product.created_at.desc())
+        .order_by(Product.position.asc(), Product.created_at.asc())
         .all()
     )
     return [_serialize_product(db, product) for product in products]
@@ -107,6 +110,16 @@ def create_product(
 ):
     profile = get_user_profile(user)
     assert_can_create_product(user, db, profile.id)
+    layout_mode = effective_layout_mode(profile, user, db)
+    capture_enabled = bool(profile.email_capture_enabled and user_is_premium(user, db))
+    position = next_block_position(
+        db,
+        profile,
+        user.id,
+        "product",
+        layout_mode=layout_mode,
+        capture_enabled=capture_enabled,
+    )
     product = Product(
         profile_id=profile.id,
         title=payload.title.strip(),
@@ -114,6 +127,7 @@ def create_product(
         price=payload.price,
         file_public_id="pending",
         file_name="pending",
+        position=position,
         is_active=False,
     )
     db.add(product)
@@ -151,6 +165,36 @@ def delete_product(
     product = _get_owned_product(db, user, product_id)
     db.delete(product)
     db.commit()
+
+
+@router.post("/reorder", response_model=list[ProductResponse])
+def reorder_products(
+    payload: ProductReorderRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    profile = get_user_profile(user)
+    product_ids = [item.id for item in payload.products]
+    products = (
+        db.query(Product)
+        .filter(Product.profile_id == profile.id, Product.id.in_(product_ids))
+        .all()
+    )
+    if len(products) != len(product_ids):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid product IDs")
+
+    position_map = {item.id: item.position for item in payload.products}
+    for product in products:
+        product.position = position_map[product.id]
+
+    db.commit()
+    products = (
+        db.query(Product)
+        .filter(Product.profile_id == profile.id)
+        .order_by(Product.position.asc(), Product.created_at.asc())
+        .all()
+    )
+    return [_serialize_product(db, product) for product in products]
 
 
 @router.post("/{product_id}/cover", response_model=ProductResponse)

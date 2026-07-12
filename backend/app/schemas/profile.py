@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, model_validator
 from app.schemas.product import PublicProductResponse
 from app.schemas.social_link import SocialLinkItem
 
+LayoutMode = Literal["grouped", "freeform"]
+
 
 class ThemeSettings(BaseModel):
     backgroundType: Literal["solid", "gradient", "image", "pattern"] = "solid"
@@ -75,8 +77,10 @@ class ProfileResponse(BaseModel):
     avatar_public_id: str | None = None
     email_capture_enabled: bool = False
     email_capture_heading: str | None = None
+    email_capture_position: int = 0
     announcement_enabled: bool = False
     announcement_text: str | None = None
+    layout_mode: LayoutMode = "grouped"
     theme_settings: ThemeSettings
     is_premium: bool = False
     created_at: datetime
@@ -108,5 +112,6 @@ class PublicProfileResponse(BaseModel):
     email_capture_enabled: bool = False
     email_capture_heading: str | None = None
     announcement_text: str | None = None
+    layout_mode: LayoutMode = "grouped"
     theme_settings: ThemeSettings
     show_branding_badge: bool = True

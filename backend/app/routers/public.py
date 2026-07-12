@@ -7,11 +7,13 @@ from app.models.analytics import PageView
 from app.models.link import Link
 from app.models.profile import Profile
 from app.schemas.analytics import TrackClickRequest, TrackViewRequest
+from app.schemas.content_block import ContentBlockResponse
 from app.schemas.link import LinkResponse
 from app.models.product import Product
 from app.schemas.product import PublicProductResponse
 from app.schemas.profile import PublicProfileResponse, ThemeSettings
 from app.services.cloudinary_storage import build_public_image_url
+from app.services.content_blocks import effective_layout_mode, get_ordered_content_blocks
 from app.services.fee_pricing import calculate_fee_inclusive_amount
 from app.schemas.social_link import SocialLinkItem
 from app.services.click_context import get_client_ip, hash_visitor_ip, parse_device_type
@@ -26,6 +28,7 @@ router = APIRouter(prefix="/public", tags=["public"])
 class PublicPageResponse(PublicProfileResponse):
     links: list[LinkResponse]
     products: list[PublicProductResponse] = []
+    content_blocks: list[ContentBlockResponse] = []
 
 
 def _serialize_public_product(product: Product) -> PublicProductResponse:
@@ -73,19 +76,78 @@ def _public_announcement(profile: Profile) -> str | None:
     return text or None
 
 
+def _build_content_block_responses(
+    ordered_blocks,
+    *,
+    link_map: dict[str, LinkResponse],
+    product_map: dict[str, PublicProductResponse],
+    is_premium: bool,
+) -> list[ContentBlockResponse]:
+    responses: list[ContentBlockResponse] = []
+    for block in ordered_blocks:
+        link_data = None
+        product_data = None
+        if block.link is not None:
+            item = link_map.get(block.link.id)
+            if item is None:
+                continue
+            if not is_premium:
+                item = item.model_copy(update={"is_featured": False})
+            link_data = item
+        if block.product is not None:
+            product_data = product_map.get(block.product.id)
+            if product_data is None:
+                continue
+        responses.append(
+            ContentBlockResponse(
+                id=block.block_id,
+                block_type=block.block_type,
+                position=block.position,
+                show_section_header=block.show_section_header,
+                section=block.section,
+                section_title=block.section_title,
+                badge_label=block.badge_label,
+                link=link_data,
+                product=product_data,
+                newsletter_heading=block.newsletter_heading,
+            )
+        )
+    return responses
+
+
 def _serialize_public_profile(db: Session, profile: Profile, links: list[Link], products: list[Product]) -> PublicPageResponse:
     user = profile.user
     is_premium = user_is_premium(user, db) if user else False
     raw_theme = profile.theme_settings or {}
     safe_theme = sanitize_theme_for_public(raw_theme, is_premium=is_premium)
     capture_enabled, capture_heading = _public_email_capture(db, profile)
+    layout_mode = effective_layout_mode(profile, user, db)
 
     public_links = []
+    link_map: dict[str, LinkResponse] = {}
     for link in links:
         item = LinkResponse.model_validate(link)
         if not is_premium:
             item.is_featured = False
         public_links.append(item)
+        link_map[link.id] = item
+
+    product_responses = [_serialize_public_product(product) for product in products]
+    product_map = {product.id: product for product in product_responses}
+
+    ordered_blocks = get_ordered_content_blocks(
+        profile,
+        links,
+        products,
+        layout_mode=layout_mode,
+        capture_enabled=capture_enabled,
+    )
+    content_blocks = _build_content_block_responses(
+        ordered_blocks,
+        link_map=link_map,
+        product_map=product_map,
+        is_premium=is_premium,
+    )
 
     return PublicPageResponse(
         username=profile.username,
@@ -96,10 +158,12 @@ def _serialize_public_profile(db: Session, profile: Profile, links: list[Link], 
         email_capture_enabled=capture_enabled,
         email_capture_heading=capture_heading if capture_enabled else None,
         announcement_text=_public_announcement(profile),
+        layout_mode=layout_mode,
         theme_settings=ThemeSettings(**safe_theme),
         show_branding_badge=not is_premium,
         links=public_links,
-        products=[_serialize_public_product(product) for product in products],
+        products=product_responses,
+        content_blocks=content_blocks,
     )
 
 
@@ -140,7 +204,7 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
     products = (
         db.query(Product)
         .filter(Product.profile_id == profile.id, Product.is_active.is_(True))
-        .order_by(Product.created_at.desc())
+        .order_by(Product.position.asc(), Product.created_at.asc())
         .all()
     )
     return _serialize_public_profile(db, profile, links, products)

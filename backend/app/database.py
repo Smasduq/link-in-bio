@@ -328,6 +328,52 @@ def _migrate_product_purchases_schema(conn, is_sqlite: bool) -> None:
             conn.execute(text(ddl))
 
 
+def _migrate_content_layout_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        profile_columns = conn.execute(text("PRAGMA table_info(profiles)")).fetchall()
+        profile_names = {row[1] for row in profile_columns}
+        profile_additions = [
+            ("layout_mode", "ALTER TABLE profiles ADD COLUMN layout_mode VARCHAR(20) NOT NULL DEFAULT 'grouped'"),
+            ("email_capture_position", "ALTER TABLE profiles ADD COLUMN email_capture_position INTEGER NOT NULL DEFAULT 0"),
+        ]
+        for column, ddl in profile_additions:
+            if column not in profile_names:
+                conn.execute(text(ddl))
+
+        product_columns = conn.execute(text("PRAGMA table_info(products)")).fetchall()
+        product_names = {row[1] for row in product_columns}
+        if "position" not in product_names:
+            conn.execute(text("ALTER TABLE products ADD COLUMN position INTEGER NOT NULL DEFAULT 0"))
+        return
+
+    for column, ddl in (
+        ("layout_mode", "ALTER TABLE profiles ADD COLUMN layout_mode VARCHAR(20) NOT NULL DEFAULT 'grouped'"),
+        ("email_capture_position", "ALTER TABLE profiles ADD COLUMN email_capture_position INTEGER NOT NULL DEFAULT 0"),
+    ):
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'profiles' AND column_name = :column
+                """
+            ),
+            {"column": column},
+        ).fetchone()
+        if not row:
+            conn.execute(text(ddl))
+
+    row = conn.execute(
+        text(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'products' AND column_name = 'position'
+            """
+        )
+    ).fetchone()
+    if not row:
+        conn.execute(text("ALTER TABLE products ADD COLUMN position INTEGER NOT NULL DEFAULT 0"))
+
+
 def _migrate_postgres_schema() -> None:
     if _is_sqlite:
         return
@@ -361,6 +407,7 @@ def _migrate_postgres_schema() -> None:
         _migrate_profiles_avatar_schema(conn, is_sqlite=False)
         _migrate_push_engagement_schema(conn, is_sqlite=False)
         _migrate_product_purchases_schema(conn, is_sqlite=False)
+        _migrate_content_layout_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -389,3 +436,4 @@ def _migrate_sqlite_schema() -> None:
         _migrate_profiles_avatar_schema(conn, is_sqlite=True)
         _migrate_push_engagement_schema(conn, is_sqlite=True)
         _migrate_product_purchases_schema(conn, is_sqlite=True)
+        _migrate_content_layout_schema(conn, is_sqlite=True)

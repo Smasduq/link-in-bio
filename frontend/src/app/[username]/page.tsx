@@ -2,19 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import type { Metadata } from "next";
-import { Globe } from "lucide-react";
-import { detectPlatform } from "@/lib/social";
-import { getLinkButtonStyle, getLinkIconColor, getUsernameStyle, normalizeTheme } from "@/lib/profile-theme";
+import { getUsernameStyle, normalizeTheme } from "@/lib/profile-theme";
 import { ClaimUsernameState } from "@/components/public/claim-username-state";
 import { ProfileThemeShell } from "@/components/public/profile-theme-shell";
-import { ProductCards } from "@/components/public/product-cards";
-import { EmailCaptureBlock } from "@/components/public/email-capture-block";
 import { ProfileAnnouncementBanner } from "@/components/public/profile-announcement-banner";
-import { ProfileEmbedBlock } from "@/components/public/profile-embed-block";
-import { TrackedProfileLink } from "@/components/public/tracked-profile-link";
+import { ProfileContentBlocks } from "@/components/public/profile-content-blocks";
 import { SocialIconsRow } from "@/components/social/social-icons-row";
 import { BrandWordmark } from "@/components/brand/logo";
-import type { PublicProfile, ThemeSettings } from "@/types/database";
+import type { PublicProfile } from "@/types/database";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const revalidate = 60;
@@ -34,13 +29,6 @@ async function fetchProfile(username: string): Promise<PublicProfile | null> {
   if (!res.ok) throw new Error(`Profile fetch failed (${res.status})`);
 
   return res.json() as Promise<PublicProfile>;
-}
-
-function sortLinks(links: PublicProfile["links"]) {
-  return [...links].sort((a, b) => {
-    if (a.is_featured !== b.is_featured) return a.is_featured ? -1 : 1;
-    return a.position - b.position;
-  });
 }
 
 function profileMetadata(profile: PublicProfile): Metadata {
@@ -112,63 +100,12 @@ function ProfileErrorState() {
   );
 }
 
-function ProfileLink({
-  label,
-  url,
-  icon,
-  featured,
-  theme,
-  linkId,
-}: {
-  label: string;
-  url: string;
-  icon: string | null;
-  featured: boolean;
-  theme: ThemeSettings;
-  linkId: string;
-}) {
-  const PlatformIcon = detectPlatform(url).icon;
-  const buttonStyle = getLinkButtonStyle(theme, { featured });
-  const iconColor = getLinkIconColor(theme, featured);
-
-  return (
-    <TrackedProfileLink
-      linkId={linkId}
-      href={url}
-      className={`profile-link group relative flex w-full items-center gap-3 border transition-all duration-200 active:scale-[0.99] ${
-        featured ? "px-5 py-5 text-base" : "px-4 py-3.5 text-sm"
-      }`}
-      style={buttonStyle}
-    >
-      <span
-        className={`profile-link-icon flex shrink-0 items-center justify-center rounded-lg ${
-          featured ? "h-11 w-11 bg-white/20" : "h-9 w-9 bg-white/10"
-        }`}
-      >
-        {icon ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={icon} alt="" className={featured ? "h-5 w-5 object-contain" : "h-4 w-4 object-contain"} />
-        ) : (
-          <PlatformIcon
-            className={featured ? "h-5 w-5" : "h-4 w-4"}
-            style={{ color: iconColor }}
-          />
-        )}
-      </span>
-      <span className={`flex-1 text-left font-semibold ${featured ? "text-base" : "text-sm"}`}>{label}</span>
-      <Globe
-        className={`shrink-0 opacity-0 transition-opacity group-hover:opacity-60 ${featured ? "h-4 w-4" : "h-3.5 w-3.5"}`}
-        style={{ color: iconColor }}
-      />
-    </TrackedProfileLink>
-  );
-}
-
 function ProfileContent({ profile }: { profile: PublicProfile }) {
   const theme = normalizeTheme(profile.theme_settings);
-  const links = sortLinks(profile.links);
   const displayName = profile.full_name || `@${profile.username}`;
   const trackUrl = `${API_URL}/api/public/${profile.username}/view`;
+  const layoutMode = profile.layout_mode ?? "grouped";
+  const blocks = profile.content_blocks ?? [];
 
   return (
     <ProfileThemeShell theme={theme} className="px-4 py-10 sm:py-12">
@@ -223,60 +160,24 @@ function ProfileContent({ profile }: { profile: PublicProfile }) {
           ) : null}
         </header>
 
-        {profile.products && profile.products.length > 0 ? (
-          <ProductCards products={profile.products} theme={theme} />
-        ) : null}
-
-        {profile.email_capture_enabled && profile.email_capture_heading ? (
-          <EmailCaptureBlock
+        <nav aria-label="Profile content">
+          <ProfileContentBlocks
             username={profile.username}
-            heading={profile.email_capture_heading}
+            blocks={blocks}
+            layoutMode={layoutMode}
             theme={theme}
           />
-        ) : null}
-
-        <nav className="flex flex-col gap-3" aria-label="Profile links">
-          {links.length === 0 ? (
-            <p className="rounded-xl border px-4 py-6 text-center text-sm opacity-60" style={{ borderColor: `${theme.textColor}22`, color: theme.textColor }}>
-              No links yet.
-            </p>
-          ) : (
-            links.map((link) =>
-              link.type === "youtube_embed" || link.type === "spotify_embed" ? (
-                link.embed_src ? (
-                  <ProfileEmbedBlock
-                    key={link.id}
-                    title={link.title}
-                    type={link.type}
-                    embedSrc={link.embed_src}
-                    embedHeight={link.embed_height}
-                    theme={theme}
-                  />
-                ) : null
-              ) : (
-                <ProfileLink
-                  key={link.id}
-                  linkId={link.id}
-                  label={link.title}
-                  url={link.url}
-                  icon={link.icon}
-                  featured={link.is_featured}
-                  theme={theme}
-                />
-              )
-            )
-          )}
         </nav>
 
         {profile.show_branding_badge !== false ? (
-        <footer className="mt-10 flex flex-col items-center gap-1.5 text-center">
-          <span className="text-xs opacity-40" style={{ color: theme.textColor }}>
-            Powered by
-          </span>
-          <Link href="/" className="opacity-50 transition-opacity hover:opacity-80">
-            <BrandWordmark height={18} color={theme.textColor} />
-          </Link>
-        </footer>
+          <footer className="mt-10 flex flex-col items-center gap-1.5 text-center">
+            <span className="text-xs opacity-40" style={{ color: theme.textColor }}>
+              Powered by
+            </span>
+            <Link href="/" className="opacity-50 transition-opacity hover:opacity-80">
+              <BrandWordmark height={18} color={theme.textColor} />
+            </Link>
+          </footer>
         ) : null}
       </div>
     </ProfileThemeShell>

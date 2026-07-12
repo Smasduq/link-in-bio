@@ -15,6 +15,16 @@ class ProductUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     price: float | None = Field(default=None, gt=0, le=10_000_000)
     is_active: bool | None = None
+    position: int | None = Field(default=None, ge=0)
+
+
+class ProductReorderItem(BaseModel):
+    id: str
+    position: int
+
+
+class ProductReorderRequest(BaseModel):
+    products: list[ProductReorderItem]
 
 
 class ProductResponse(BaseModel):
@@ -26,6 +36,7 @@ class ProductResponse(BaseModel):
     total_charge: float
     cover_image_url: str | None = None
     file_name: str
+    position: int = 0
     is_active: bool
     sales_count: int = 0
     revenue: float = 0

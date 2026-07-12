@@ -38,6 +38,23 @@ export type SocialLink = {
   position: number;
 };
 
+export type LayoutMode = "grouped" | "freeform";
+
+export type ContentBlockType = "link" | "embed" | "product" | "newsletter";
+
+export type ContentBlock = {
+  id: string;
+  block_type: ContentBlockType;
+  position: number;
+  show_section_header?: boolean;
+  section?: string | null;
+  section_title?: string | null;
+  badge_label?: string | null;
+  link?: Link;
+  product?: import("@/lib/products").PublicProduct;
+  newsletter_heading?: string | null;
+};
+
 export type Profile = {
   id: string;
   user_id: string;
@@ -53,6 +70,8 @@ export type Profile = {
   email_capture_heading?: string | null;
   announcement_enabled?: boolean;
   announcement_text?: string | null;
+  layout_mode?: LayoutMode;
+  email_capture_position?: number;
   created_at: string;
   updated_at: string;
 };
@@ -131,6 +150,8 @@ export type PublicProfile = {
   avatar_public_id?: string | null;
   social_links: SocialLink[];
   products?: import("@/lib/products").PublicProduct[];
+  content_blocks?: ContentBlock[];
+  layout_mode?: LayoutMode;
   email_capture_enabled?: boolean;
   email_capture_heading?: string | null;
   announcement_text?: string | null;

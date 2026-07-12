@@ -94,7 +94,7 @@ async def upload_product_file(product_id: str, file: UploadFile) -> tuple[str, s
 def generate_signed_private_download_url(public_id: str, *, expires_in_seconds: int = 300) -> str:
     configure_cloudinary()
     expires_at = int(time.time()) + expires_in_seconds
-    return cloudinary.utils.cloudinary_url(
+    result = cloudinary.utils.cloudinary_url(
         public_id,
         resource_type="raw",
         type="private",
@@ -102,3 +102,6 @@ def generate_signed_private_download_url(public_id: str, *, expires_in_seconds: 
         secure=True,
         expires_at=expires_at,
     )
+    if isinstance(result, tuple):
+        return result[0]
+    return result

@@ -7,6 +7,7 @@ export type Product = {
   total_charge: number;
   cover_image_url: string | null;
   file_name: string;
+  position?: number;
   is_active: boolean;
   sales_count: number;
   revenue: number;

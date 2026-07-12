@@ -5,6 +5,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, require_active_premium
 from app.models.link import Link
 from app.models.user import User
+from app.dependencies import get_user_profile
 from app.schemas.analytics import LinkClickInsights, TrackClickRequest
 from app.schemas.link import (
     EmbedDetectRequest,
@@ -16,7 +17,8 @@ from app.schemas.link import (
 )
 from app.services.auth import get_favicon_url
 from app.services.click_tracking import get_link_click_insights, record_link_click
-from app.services.premium_access import require_premium
+from app.services.premium_access import require_premium, user_is_premium
+from app.services.content_blocks import EMBED_TYPES, effective_layout_mode, next_block_position
 from app.services.embed_links import (
     default_embed_title,
     detect_embed_type,
@@ -113,15 +115,20 @@ def create_link(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    max_position = (
-        db.query(Link.position)
-        .filter(Link.user_id == current_user.id)
-        .order_by(Link.position.desc())
-        .first()
-    )
-    next_position = (max_position[0] + 1) if max_position else 0
-
+    profile = get_user_profile(current_user)
     link_type = _resolve_create_type(payload)
+    layout_mode = effective_layout_mode(profile, current_user, db)
+    capture_enabled = bool(profile.email_capture_enabled and user_is_premium(current_user, db))
+    block_type = "embed" if link_type in EMBED_TYPES else "link"
+    next_position = next_block_position(
+        db,
+        profile,
+        current_user.id,
+        block_type,
+        layout_mode=layout_mode,
+        capture_enabled=capture_enabled,
+    )
+
     title, url, icon = _prepare_link_fields(link_type, payload.url, payload.title)
     if link_type == "link" and not title:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Title is required.")
