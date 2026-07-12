@@ -3,16 +3,17 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user, get_user_profile
+from app.dependencies import get_current_user, get_premium_status_dep, get_user_profile
 from app.models.profile import Profile
 from app.models.user import User
 from app.schemas.profile import AnnouncementUpdate, ProfileResponse, ProfileUpdate, ThemeSettings
 from app.services.avatar import resolve_profile_avatar_url
+from app.services.premium_access import user_is_premium, validate_theme_settings
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 
-def _serialize_profile(profile: Profile) -> ProfileResponse:
+def _serialize_profile(profile: Profile, *, is_premium: bool) -> ProfileResponse:
     theme = profile.theme_settings or {}
     return ProfileResponse(
         id=profile.id,
@@ -27,15 +28,20 @@ def _serialize_profile(profile: Profile) -> ProfileResponse:
         announcement_enabled=profile.announcement_enabled,
         announcement_text=profile.announcement_text,
         theme_settings=ThemeSettings(**theme),
+        is_premium=is_premium,
         created_at=profile.created_at,
         updated_at=profile.updated_at,
     )
 
 
 @router.get("", response_model=ProfileResponse)
-def get_profile(current_user: User = Depends(get_current_user)):
+def get_profile(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    premium: dict = Depends(get_premium_status_dep),
+):
     profile = get_user_profile(current_user)
-    return _serialize_profile(profile)
+    return _serialize_profile(profile, is_premium=premium["is_premium"])
 
 
 @router.patch("", response_model=ProfileResponse)
@@ -43,6 +49,7 @@ def update_profile(
     payload: ProfileUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    premium: dict = Depends(get_premium_status_dep),
 ):
     profile = get_user_profile(current_user)
     updates = payload.model_dump(exclude_unset=True)
@@ -52,7 +59,9 @@ def update_profile(
 
     if "theme_settings" in updates and updates["theme_settings"] is not None:
         theme = updates["theme_settings"]
-        updates["theme_settings"] = theme.model_dump() if hasattr(theme, "model_dump") else theme
+        theme_dict = theme.model_dump() if hasattr(theme, "model_dump") else theme
+        validate_theme_settings(theme_dict, is_premium=premium["is_premium"])
+        updates["theme_settings"] = theme_dict
 
     for key, value in updates.items():
         setattr(profile, key, value)
@@ -64,7 +73,7 @@ def update_profile(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken")
 
     db.refresh(profile)
-    return _serialize_profile(profile)
+    return _serialize_profile(profile, is_premium=premium["is_premium"])
 
 
 @router.patch("/announcement", response_model=AnnouncementUpdate)

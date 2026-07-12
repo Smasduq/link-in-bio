@@ -35,7 +35,7 @@ export const PRO_UPGRADE_HIGHLIGHT =
   "See exactly where your visitors come from and when they're most active — unlock with Pro";
 
 export const FREE_THEME_PRESET_IDS = new Set<string>();
-export const PRO_ONLY_BUTTON_STYLES = new Set(["glass"]);
+export const PRO_ONLY_BUTTON_STYLES = new Set(["glass", "rounded", "square"]);
 export const PRO_ONLY_BACKGROUND_TYPES = new Set(["gradient", "pattern", "image"]);
 
 export function formatNgn(amount: number, fractionDigits = 0): string {

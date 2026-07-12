@@ -12,8 +12,8 @@ from app.models.profile import Profile
 from app.models.subscriber import Subscriber
 from app.models.user import User
 from app.schemas.subscriber import EmailCaptureUpdate, SubscribeRequest, SubscribeResponse, SubscriberResponse
-from app.services.billing import get_current_user_premium_status
 from app.services.click_context import get_client_ip
+from app.services.premium_access import user_is_premium
 from app.services.rate_limit import subscribe_rate_limiter
 
 router = APIRouter(tags=["subscribers"])
@@ -56,8 +56,8 @@ def subscribe_to_profile(
     if profile is None or profile.user is None:
         return _public_subscribe_success()
 
-    premium_status = get_current_user_premium_status(profile.user, db)
-    if not premium_status["is_premium"] or not profile.email_capture_enabled:
+    premium_status = user_is_premium(profile.user, db)
+    if not premium_status or not profile.email_capture_enabled:
         return _public_subscribe_success()
 
     email = str(payload.email).strip().lower()
@@ -85,8 +85,7 @@ def update_email_capture_settings(
     db: Session = Depends(get_db),
 ):
     profile = get_user_profile(user)
-    premium_status = get_current_user_premium_status(user, db)
-    if not premium_status["is_premium"]:
+    if not user_is_premium(user, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Pro plan required to use email capture.",

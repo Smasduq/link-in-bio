@@ -43,6 +43,7 @@ import {
 } from "@/lib/dashboard-utils";
 import { getBackgroundStyle, getLinkButtonStyle, normalizeTheme } from "@/lib/profile-theme";
 import { SITE_NAME } from "@/lib/site";
+import { ProUpgradeCta } from "@/components/billing/pro-upgrade-cta";
 import { useAnimatedCounter, useInView, useRipple } from "@/components/dashboard/overview/hooks";
 import "@/styles/dashboard-overview.css";
 
@@ -364,6 +365,7 @@ function TopLinkRow({ link, index }: { link: ReturnType<typeof buildTopLinks>[nu
 export function DashboardOverview({ profile, links, analytics }: DashboardOverviewProps) {
   const [period, setPeriod] = useState<DashboardPeriod>("7d");
   const [search, setSearch] = useState("");
+  const isPremium = Boolean(profile.is_premium);
 
   const overview = analytics.overview;
   const viewSpark = analytics.daily_stats.map((d) => d.page_views);
@@ -512,19 +514,47 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
             delay={160}
             suffix="%"
           />
-          <StatCard
-            icon={Users}
-            label="Unique visitors"
-            value={uniqueVisitors}
-            delta={periodTrend(uniqueSpark)}
-            sparkData={uniqueSpark}
-            delay={240}
-          />
+          {isPremium ? (
+            <StatCard
+              icon={Users}
+              label="Unique visitors"
+              value={uniqueVisitors}
+              delta={periodTrend(uniqueSpark)}
+              sparkData={uniqueSpark}
+              delay={240}
+            />
+          ) : (
+            <article className="lb-card lb-stat">
+              <div className="lb-card__body lb-stat__body">
+                <div className="lb-stat__icon" aria-hidden>
+                  <Users />
+                </div>
+                <div className="lb-stat__main">
+                  <p className="lb-stat__label">Unique visitors</p>
+                  <Link href="/upgrade" className="lb-section__link" style={{ marginTop: "0.5rem", display: "inline-block" }}>
+                    Unlock with Pro →
+                  </Link>
+                </div>
+              </div>
+            </article>
+          )}
         </section>
 
         {/* Analytics + Phone */}
         <section className="lb-section lb-grid lb-grid--2">
-          <AnalyticsChart data={analytics.daily_stats} period={period} onPeriodChange={setPeriod} />
+          {isPremium ? (
+            <AnalyticsChart data={analytics.daily_stats} period={period} onPeriodChange={setPeriod} />
+          ) : (
+            <div className="lb-card">
+              <div className="lb-card__body">
+                <ProUpgradeCta
+                  title="7-day analytics chart"
+                  description="Track daily views and clicks over time with Pro."
+                  className="border-0 bg-transparent p-0"
+                />
+              </div>
+            </div>
+          )}
           <PhonePreview profile={profile} links={links} />
         </section>
 
@@ -557,18 +587,27 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
           <div className="lb-section__head">
             <h2 id="insights-heading" className="lb-section__title">Visitor insights</h2>
           </div>
-          <div className="lb-insights">
-            <InsightCard title="Top regions" items={analytics.visitor_insights.top_regions} />
-            <InsightCard title="Top devices" items={analytics.visitor_insights.top_devices.map((item) => ({
-              ...item,
-              icon: item.label === "Mobile" ? Smartphone : item.label === "Tablet" ? Tablet : Monitor,
-            }))} />
-            <InsightCard title="Most active time" items={analytics.visitor_insights.most_active_time} />
-          </div>
-          {!hasTraffic && analytics.visitor_insights.top_regions.every((item) => item.count === 0) && (
-            <p className="lb-search__hint" style={{ marginTop: "0.75rem" }}>
-              Insights populate as your page receives traffic.
-            </p>
+          {isPremium ? (
+            <>
+              <div className="lb-insights">
+                <InsightCard title="Top regions" items={analytics.visitor_insights.top_regions} />
+                <InsightCard title="Top devices" items={analytics.visitor_insights.top_devices.map((item) => ({
+                  ...item,
+                  icon: item.label === "Mobile" ? Smartphone : item.label === "Tablet" ? Tablet : Monitor,
+                }))} />
+                <InsightCard title="Most active time" items={analytics.visitor_insights.most_active_time} />
+              </div>
+              {!hasTraffic && analytics.visitor_insights.top_regions.every((item) => item.count === 0) && (
+                <p className="lb-search__hint" style={{ marginTop: "0.75rem" }}>
+                  Insights populate as your page receives traffic.
+                </p>
+              )}
+            </>
+          ) : (
+            <ProUpgradeCta
+              title="Visitor insights"
+              description="See top regions, devices, and most active times — included with Pro."
+            />
           )}
         </section>
 

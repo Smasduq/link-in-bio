@@ -268,6 +268,7 @@ function ProfileContent({ profile }: { profile: PublicProfile }) {
           )}
         </nav>
 
+        {profile.show_branding_badge !== false ? (
         <footer className="mt-10 flex flex-col items-center gap-1.5 text-center">
           <span className="text-xs opacity-40" style={{ color: theme.textColor }}>
             Powered by
@@ -276,6 +277,7 @@ function ProfileContent({ profile }: { profile: PublicProfile }) {
             <BrandWordmark height={18} color={theme.textColor} />
           </Link>
         </footer>
+        ) : null}
       </div>
     </ProfileThemeShell>
   );

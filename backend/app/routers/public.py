@@ -17,7 +17,7 @@ from app.schemas.social_link import SocialLinkItem
 from app.services.click_context import get_client_ip, hash_visitor_ip, parse_device_type
 from app.services.click_tracking import record_link_click
 from app.services.avatar import resolve_profile_avatar_url
-from app.services.billing import get_current_user_premium_status
+from app.services.premium_access import get_premium_status, sanitize_theme_for_public, user_is_premium
 from app.services.geoip import lookup_country_code
 
 router = APIRouter(prefix="/public", tags=["public"])
@@ -58,7 +58,7 @@ def _public_email_capture(db: Session, profile: Profile) -> tuple[bool, str | No
     user = profile.user
     if user is None:
         return False, None
-    if not get_current_user_premium_status(user, db)["is_premium"]:
+    if not user_is_premium(user, db):
         return False, None
     if not profile.email_capture_enabled:
         return False, None
@@ -74,8 +74,19 @@ def _public_announcement(profile: Profile) -> str | None:
 
 
 def _serialize_public_profile(db: Session, profile: Profile, links: list[Link], products: list[Product]) -> PublicPageResponse:
-    theme = profile.theme_settings or {}
+    user = profile.user
+    is_premium = user_is_premium(user, db) if user else False
+    raw_theme = profile.theme_settings or {}
+    safe_theme = sanitize_theme_for_public(raw_theme, is_premium=is_premium)
     capture_enabled, capture_heading = _public_email_capture(db, profile)
+
+    public_links = []
+    for link in links:
+        item = LinkResponse.model_validate(link)
+        if not is_premium:
+            item.is_featured = False
+        public_links.append(item)
+
     return PublicPageResponse(
         username=profile.username,
         full_name=profile.full_name,
@@ -85,8 +96,9 @@ def _serialize_public_profile(db: Session, profile: Profile, links: list[Link], 
         email_capture_enabled=capture_enabled,
         email_capture_heading=capture_heading if capture_enabled else None,
         announcement_text=_public_announcement(profile),
-        theme_settings=ThemeSettings(**theme),
-        links=[LinkResponse.model_validate(link) for link in links],
+        theme_settings=ThemeSettings(**safe_theme),
+        show_branding_badge=not is_premium,
+        links=public_links,
         products=[_serialize_public_product(product) for product in products],
     )
 

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models.user import User
 from app.services.auth import decode_access_token
-from app.services.billing import get_current_user_premium_status
+from app.services.premium_access import get_premium_status, require_premium
 
 security = HTTPBearer(auto_error=False)
 
@@ -32,17 +32,22 @@ def get_current_user(
     return user
 
 
+def get_premium_status_dep(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """FastAPI dependency — synced premium status for the current user."""
+    status_info = get_premium_status(user, db)
+    db.commit()
+    return status_info
+
+
 def require_active_premium(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> User:
-    status_info = get_current_user_premium_status(user, db)
+    require_premium(user, db)
     db.commit()
-    if not status_info["is_premium"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Pro plan required for this feature",
-        )
     return user
 
 

@@ -24,10 +24,10 @@ from app.services.billing import (
     apply_verified_transaction,
     billing_history_payload,
     billing_status_payload,
-    get_current_user_premium_status,
     handle_paystack_event,
     mark_subscription_cancelled,
 )
+from app.services.premium_access import get_premium_status
 from app.services.notifications import has_recent_notification, notify_user
 from app.services.product_purchases import process_product_purchase_webhook
 from app.services.paystack import disable_paystack_subscription, initialize_transaction, verify_paystack_signature
@@ -54,7 +54,7 @@ async def initialize_billing(
     if not settings.paystack_configured:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Billing is not configured")
 
-    status_info = get_current_user_premium_status(user, db)
+    status_info = get_premium_status(user, db)
     if status_info["is_premium"] and status_info["subscription_status"] != "cancelled":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You already have an active Pro plan")
 
@@ -132,7 +132,7 @@ async def verify_billing_transaction(
             )
         db.commit()
 
-    status_info = get_current_user_premium_status(user, db)
+    status_info = get_premium_status(user, db)
     return VerifyTransactionResponse(
         status=result["status"],
         reference=result["reference"],
@@ -150,7 +150,7 @@ async def cancel_billing(
     if not settings.paystack_configured:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Billing is not configured")
 
-    status_info = get_current_user_premium_status(user, db)
+    status_info = get_premium_status(user, db)
     if user.subscription_status == "cancelled":
         return CancelBillingResponse(
             subscription_status="cancelled",
@@ -182,7 +182,7 @@ async def cancel_billing(
         )
     db.commit()
 
-    status_info = get_current_user_premium_status(user, db)
+    status_info = get_premium_status(user, db)
     premium_until = status_info["premium_until"]
     until_text = premium_until.date().isoformat() if premium_until else "the end of your billing period"
     return CancelBillingResponse(

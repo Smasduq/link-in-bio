@@ -78,6 +78,7 @@ class ProfileResponse(BaseModel):
     announcement_enabled: bool = False
     announcement_text: str | None = None
     theme_settings: ThemeSettings
+    is_premium: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -108,3 +109,4 @@ class PublicProfileResponse(BaseModel):
     email_capture_heading: str | None = None
     announcement_text: str | None = None
     theme_settings: ThemeSettings
+    show_branding_badge: bool = True

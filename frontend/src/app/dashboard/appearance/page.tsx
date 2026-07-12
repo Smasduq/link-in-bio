@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ImageIcon, Palette, Save, Sparkles } from "lucide-react";
+import { Crown, ImageIcon, Palette, Save, Sparkles } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import {
   ACCENT_PRESETS,
@@ -10,9 +10,17 @@ import {
   SOLID_PRESETS,
   normalizeTheme,
 } from "@/lib/profile-theme";
+import {
+  isBackgroundTypePro,
+  isButtonStylePro,
+  isFontPro,
+  isPremiumFromProfile,
+  FREE_FONTS,
+} from "@/lib/premium-features";
 import type { BackgroundType, Profile, ThemeSettings } from "@/types/database";
 import { ProfileLivePreview } from "@/components/dashboard/profile-live-preview";
 import { ThemePresetPicker } from "@/components/dashboard/theme-preset-picker";
+import { ProUpgradeCta } from "@/components/billing/pro-upgrade-cta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,6 +49,7 @@ export default function AppearancePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [username, setUsername] = useState("username");
+  const [isPremium, setIsPremium] = useState(false);
   const [theme, setTheme] = useState<ThemeSettings>(normalizeTheme(undefined));
 
   useEffect(() => {
@@ -48,6 +57,7 @@ export default function AppearancePage() {
       .then((d) => {
         setTheme(normalizeTheme(d.theme_settings));
         setUsername(d.username);
+        setIsPremium(isPremiumFromProfile(d));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -58,20 +68,32 @@ export default function AppearancePage() {
     try {
       await apiFetch("/api/profile", { method: "PATCH", body: JSON.stringify({ theme_settings: theme }) });
       setMessage("Theme saved!");
-    } catch {
-      setMessage("Failed to save theme");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Failed to save theme");
     } finally {
       setSaving(false);
     }
   };
 
   const setBackgroundType = (backgroundType: BackgroundType) => {
+    if (!isPremium && isBackgroundTypePro(backgroundType)) return;
+
     let background = theme.background;
     if (backgroundType === "solid") background = SOLID_PRESETS[0].value;
     if (backgroundType === "gradient") background = GRADIENT_PRESETS[0].value;
     if (backgroundType === "pattern") background = "#150E27";
     if (backgroundType === "image") background = "https://images.unsplash.com/photo-1557683316-973673baf926?w=1200";
     setTheme({ ...theme, backgroundType, background, presetId: undefined });
+  };
+
+  const setButtonStyle = (style: ThemeSettings["buttonStyle"]) => {
+    if (!isPremium && isButtonStylePro(style)) return;
+    setTheme({ ...theme, buttonStyle: style, presetId: undefined });
+  };
+
+  const setFont = (key: "fontDisplay" | "fontBody", font: string) => {
+    if (!isPremium && isFontPro(font)) return;
+    setTheme({ ...theme, [key]: font, presetId: undefined });
   };
 
   if (loading) return <PageLoader />;
@@ -85,6 +107,13 @@ export default function AppearancePage() {
         </p>
       </div>
 
+      {!isPremium ? (
+        <ProUpgradeCta
+          title="Unlock premium themes & styling"
+          description="Pro includes all presets, glass buttons, gradient backgrounds, full font library, and removing the Powered by badge."
+        />
+      ) : null}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         <div className="space-y-4">
           <Card>
@@ -94,7 +123,7 @@ export default function AppearancePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ThemePresetPicker theme={theme} onSelect={setTheme} />
+              <ThemePresetPicker theme={theme} onSelect={setTheme} isPremium={isPremium} />
             </CardContent>
           </Card>
 
@@ -108,16 +137,22 @@ export default function AppearancePage() {
               <div>
                 <p className="mb-3 text-sm font-medium">Background</p>
                 <div className="mb-3 flex flex-wrap gap-2">
-                  {BG_TABS.map((tab) => (
-                    <Button
-                      key={tab.value}
-                      size="sm"
-                      variant={theme.backgroundType === tab.value ? "primary" : "outline"}
-                      onClick={() => setBackgroundType(tab.value)}
-                    >
-                      {tab.label}
-                    </Button>
-                  ))}
+                  {BG_TABS.map((tab) => {
+                    const locked = !isPremium && isBackgroundTypePro(tab.value);
+                    return (
+                      <Button
+                        key={tab.value}
+                        size="sm"
+                        variant={theme.backgroundType === tab.value ? "primary" : "outline"}
+                        disabled={locked}
+                        onClick={() => setBackgroundType(tab.value)}
+                        className={cn(locked && "opacity-60")}
+                      >
+                        {tab.label}
+                        {locked ? <Crown className="ml-1 h-3 w-3 text-amber-600" /> : null}
+                      </Button>
+                    );
+                  })}
                 </div>
 
                 {theme.backgroundType === "solid" && (
@@ -145,7 +180,7 @@ export default function AppearancePage() {
                   </div>
                 )}
 
-                {theme.backgroundType === "gradient" && (
+                {theme.backgroundType === "gradient" && isPremium && (
                   <div className="space-y-2">
                     <div className="flex flex-wrap gap-2">
                       {GRADIENT_PRESETS.map((g) => (
@@ -171,7 +206,7 @@ export default function AppearancePage() {
                   </div>
                 )}
 
-                {theme.backgroundType === "pattern" && (
+                {theme.backgroundType === "pattern" && isPremium && (
                   <Input
                     label="Pattern base color"
                     value={theme.background}
@@ -180,7 +215,7 @@ export default function AppearancePage() {
                   />
                 )}
 
-                {theme.backgroundType === "image" && (
+                {theme.backgroundType === "image" && isPremium && (
                   <Input
                     label="Background image URL"
                     value={theme.background}
@@ -229,16 +264,22 @@ export default function AppearancePage() {
               <div>
                 <p className="mb-3 text-sm font-medium">Button style</p>
                 <div className="flex flex-wrap gap-2">
-                  {BUTTON_STYLES.map((s) => (
-                    <Button
-                      key={s.value}
-                      variant={theme.buttonStyle === s.value ? "primary" : "outline"}
-                      size="sm"
-                      onClick={() => setTheme({ ...theme, buttonStyle: s.value, presetId: undefined })}
-                    >
-                      {s.label}
-                    </Button>
-                  ))}
+                  {BUTTON_STYLES.map((s) => {
+                    const locked = !isPremium && isButtonStylePro(s.value);
+                    return (
+                      <Button
+                        key={s.value}
+                        variant={theme.buttonStyle === s.value ? "primary" : "outline"}
+                        size="sm"
+                        disabled={locked}
+                        onClick={() => setButtonStyle(s.value)}
+                        className={cn(locked && "opacity-60")}
+                      >
+                        {s.label}
+                        {locked ? <Crown className="ml-1 h-3 w-3 text-amber-600" /> : null}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -248,13 +289,17 @@ export default function AppearancePage() {
                   <select
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
                     value={theme.fontDisplay}
-                    onChange={(e) => setTheme({ ...theme, fontDisplay: e.target.value, presetId: undefined })}
+                    onChange={(e) => setFont("fontDisplay", e.target.value)}
                   >
-                    {FONT_OPTIONS.map((font) => (
-                      <option key={font} value={font}>
-                        {font}
-                      </option>
-                    ))}
+                    {FONT_OPTIONS.map((font) => {
+                      const locked = !isPremium && !FREE_FONTS.has(font);
+                      return (
+                        <option key={font} value={font} disabled={locked}>
+                          {font}
+                          {locked ? " (Pro)" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 <div>
@@ -262,13 +307,17 @@ export default function AppearancePage() {
                   <select
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
                     value={theme.fontBody}
-                    onChange={(e) => setTheme({ ...theme, fontBody: e.target.value, presetId: undefined })}
+                    onChange={(e) => setFont("fontBody", e.target.value)}
                   >
-                    {FONT_OPTIONS.map((font) => (
-                      <option key={font} value={font}>
-                        {font}
-                      </option>
-                    ))}
+                    {FONT_OPTIONS.map((font) => {
+                      const locked = !isPremium && !FREE_FONTS.has(font);
+                      return (
+                        <option key={font} value={font} disabled={locked}>
+                          {font}
+                          {locked ? " (Pro)" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
@@ -276,7 +325,11 @@ export default function AppearancePage() {
               <Button onClick={handleSave} loading={saving}>
                 <Save className="h-4 w-4" /> Save theme
               </Button>
-              {message && <p className="text-sm text-emerald-600">{message}</p>}
+              {message && (
+                <p className={cn("text-sm", message.includes("Failed") || message.includes("Pro") ? "text-destructive" : "text-emerald-600")}>
+                  {message}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

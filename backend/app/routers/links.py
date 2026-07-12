@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_active_premium
 from app.models.link import Link
 from app.models.user import User
 from app.schemas.analytics import LinkClickInsights, TrackClickRequest
@@ -16,6 +16,7 @@ from app.schemas.link import (
 )
 from app.services.auth import get_favicon_url
 from app.services.click_tracking import get_link_click_insights, record_link_click
+from app.services.premium_access import require_premium
 from app.services.embed_links import (
     default_embed_title,
     detect_embed_type,
@@ -89,9 +90,9 @@ def track_link_click(
 def link_click_insights(
     link_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_premium),
 ):
-    """Owner-only aggregated click insights for a single link."""
+    """Owner-only aggregated click insights for a single link (Pro)."""
     return get_link_click_insights(db, link_id, current_user.id)
 
 
@@ -152,6 +153,9 @@ def update_link(
 
     updates = payload.model_dump(exclude_unset=True)
     next_type = updates.get("type", link.type)
+
+    if updates.get("is_featured") is True:
+        require_premium(current_user, db)
 
     if "url" in updates and updates["url"]:
         title = updates.get("title", link.title)

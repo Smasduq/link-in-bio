@@ -48,6 +48,7 @@ export type Profile = {
   social_links?: SocialLink[];
   bio: string | null;
   theme_settings: ThemeSettings;
+  is_premium?: boolean;
   email_capture_enabled?: boolean;
   email_capture_heading?: string | null;
   announcement_enabled?: boolean;
@@ -134,5 +135,6 @@ export type PublicProfile = {
   email_capture_heading?: string | null;
   announcement_text?: string | null;
   theme_settings: ThemeSettings;
+  show_branding_badge?: boolean;
   links: Link[];
 };

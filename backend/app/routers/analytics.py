@@ -9,7 +9,8 @@ from app.dependencies import get_current_user, get_user_profile
 from app.models.analytics import LinkClick, PageView
 from app.models.link import Link
 from app.models.user import User
-from app.schemas.analytics import AnalyticsOverview, AnalyticsResponse, DailyStat, LinkAnalytics
+from app.schemas.analytics import AnalyticsOverview, AnalyticsResponse, DailyStat, LinkAnalytics, VisitorInsights
+from app.services.premium_access import empty_visitor_insights, user_is_premium
 from app.services.unique_visitors import get_unique_visitors_by_day, get_unique_visitors_total
 from app.services.visitor_insights import get_visitor_insights
 
@@ -22,6 +23,7 @@ def get_analytics(
     current_user: User = Depends(get_current_user),
 ):
     profile = get_user_profile(current_user)
+    is_premium = user_is_premium(current_user, db)
     seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
 
     total_page_views = (
@@ -67,7 +69,7 @@ def get_analytics(
                 title=link.title,
                 url=link.url,
                 click_count=link.click_count,
-                clicks_last_7_days=recent_clicks,
+                clicks_last_7_days=recent_clicks if is_premium else 0,
                 is_active=link.is_active,
             )
         )
@@ -105,24 +107,32 @@ def get_analytics(
                 or 0
             )
 
-        daily_stats.append(
-            DailyStat(
-                date=day_start.strftime("%Y-%m-%d"),
-                page_views=day_views,
-                link_clicks=day_clicks,
+        if is_premium:
+            daily_stats.append(
+                DailyStat(
+                    date=day_start.strftime("%Y-%m-%d"),
+                    page_views=day_views,
+                    link_clicks=day_clicks,
+                )
             )
-        )
+
+    empty_insights = empty_visitor_insights()
+    visitor_insights = (
+        get_visitor_insights(db, current_user.id, profile.id)
+        if is_premium
+        else VisitorInsights(**empty_insights)
+    )
 
     return AnalyticsResponse(
         overview=AnalyticsOverview(
             total_page_views=total_page_views,
             total_link_clicks=total_link_clicks,
-            views_last_7_days=views_last_7_days,
-            clicks_last_7_days=clicks_last_7_days,
-            unique_visitors_total=get_unique_visitors_total(db, profile.id),
-            unique_visitors_by_day=get_unique_visitors_by_day(db, profile.id),
+            views_last_7_days=views_last_7_days if is_premium else 0,
+            clicks_last_7_days=clicks_last_7_days if is_premium else 0,
+            unique_visitors_total=get_unique_visitors_total(db, profile.id) if is_premium else 0,
+            unique_visitors_by_day=get_unique_visitors_by_day(db, profile.id) if is_premium else [],
         ),
         links=link_analytics,
         daily_stats=daily_stats,
-        visitor_insights=get_visitor_insights(db, current_user.id, profile.id),
+        visitor_insights=visitor_insights,
     )
