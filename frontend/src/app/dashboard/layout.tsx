@@ -8,14 +8,15 @@ import {
   ExternalLink,
   LogOut,
   Settings,
-  User,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch } from "@/lib/api";
 import { Profile } from "@/types/database";
 import { Logo } from "@/components/brand/logo";
+import { BillingAlertBanner } from "@/components/notifications/billing-alert-banner";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { cn } from "@/lib/utils";
+import { resolveAvatarUrl } from "@/lib/avatar";
 import {
   dashboardNav,
   getDashboardPageTitle,
@@ -105,12 +106,8 @@ function AvatarMenu({
         aria-label="Account menu"
         aria-expanded={open}
       >
-        {profile?.avatar_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <User className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={resolveAvatarUrl(profile?.avatar_url)} alt="" className="h-full w-full object-cover" />
       </button>
 
       {open && (
@@ -233,6 +230,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
 
             <div className="hidden md:flex md:items-center md:gap-2">
+              <NotificationBell />
               <AvatarMenu profile={profile} email={user?.email} onLogout={logout} />
             </div>
 
@@ -261,7 +259,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             pathname === "/dashboard" && "bg-[#F5F7FA] dark:bg-[#0f1419]"
           )}
         >
-          <div className="mx-auto w-full animate-fade-in xl:max-w-[1100px]">{children}</div>
+          <div className="mx-auto w-full animate-fade-in xl:max-w-[1100px]">
+            <BillingAlertBanner />
+            {children}
+          </div>
         </main>
       </div>
 

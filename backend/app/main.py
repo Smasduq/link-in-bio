@@ -8,7 +8,7 @@ from sqlalchemy.exc import OperationalError
 
 from app.config import SITE_NAME, settings
 from app.database import ensure_db, SessionLocal
-from app.routers import analytics, auth, billing, links, profile, public
+from app.routers import analytics, auth, billing, links, notifications, profile, public, users
 from app.services.geoip import close_geoip, init_geoip, resolve_geolite2_db_path
 from app.services.plan_catalog import ensure_billing_plans
 
@@ -67,6 +67,8 @@ app.include_router(links.router, prefix="/api")
 app.include_router(public.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 
 
 @app.exception_handler(OperationalError)

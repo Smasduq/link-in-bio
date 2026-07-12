@@ -5,6 +5,7 @@ from app.models.link import Link
 from app.models.otp_challenge import OtpChallenge
 from app.models.password_reset import PasswordResetToken
 from app.models.profile import Profile
+from app.models.notification import Notification
 from app.models.user import User
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "OtpChallenge",
     "BillingEvent",
     "BillingPlanRecord",
+    "Notification",
 ]

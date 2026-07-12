@@ -11,6 +11,7 @@ from app.schemas.link import LinkResponse
 from app.schemas.profile import PublicProfileResponse, ThemeSettings
 from app.services.click_context import get_client_ip, hash_visitor_ip, parse_device_type
 from app.services.click_tracking import record_link_click
+from app.services.avatar import resolve_avatar_url
 from app.services.geoip import lookup_country_code
 
 router = APIRouter(prefix="/public", tags=["public"])
@@ -26,7 +27,7 @@ def _serialize_public_profile(profile: Profile, links: list[Link]) -> PublicPage
         username=profile.username,
         full_name=profile.full_name,
         bio=profile.bio,
-        avatar_url=profile.avatar_url,
+        avatar_url=resolve_avatar_url(profile.avatar_url),
         theme_settings=ThemeSettings(**theme),
         links=[LinkResponse.model_validate(link) for link in links],
     )

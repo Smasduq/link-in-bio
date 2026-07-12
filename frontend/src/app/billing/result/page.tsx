@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { type VerifyTransactionResponse } from "@/lib/plans";
+import { useToast } from "@/components/ui/toast";
 
 type VerifyState = "loading" | "success" | "failed" | "abandoned" | "error";
 
@@ -18,6 +19,7 @@ export default function BillingResultPage() {
   const searchParams = useSearchParams();
   const reference = searchParams.get("reference") ?? searchParams.get("trxref");
   const { user, loading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const [state, setState] = useState<VerifyState>("loading");
   const [result, setResult] = useState<VerifyTransactionResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -33,13 +35,22 @@ export default function BillingResultPage() {
     apiFetch<VerifyTransactionResponse>(`/api/billing/verify?reference=${encodeURIComponent(reference)}`)
       .then((data) => {
         setResult(data);
-        setState(data.status === "success" ? "success" : data.status === "abandoned" ? "abandoned" : "failed");
+        if (data.status === "success") {
+          setState("success");
+          showToast("Payment successful — you're now Pro!", "success");
+        } else if (data.status === "abandoned") {
+          setState("abandoned");
+          showToast("Payment was cancelled before completion.", "error");
+        } else {
+          setState("failed");
+          showToast(data.gateway_response || "Payment didn't go through.", "error");
+        }
       })
       .catch((err: unknown) => {
         setState("error");
         setErrorMessage(err instanceof Error ? err.message : "Could not verify payment");
       });
-  }, [authLoading, reference, user]);
+  }, [authLoading, reference, showToast, user]);
 
   if (authLoading || !user) {
     return (

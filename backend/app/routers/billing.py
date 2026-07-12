@@ -25,6 +25,7 @@ from app.services.billing import (
     handle_paystack_event,
     mark_subscription_cancelled,
 )
+from app.services.notifications import has_recent_notification, notify_user
 from app.services.paystack import disable_paystack_subscription, initialize_transaction, verify_paystack_signature
 from app.services.paystack import verify_transaction as verify_paystack_transaction
 from app.services.plan_catalog import plan_pricing_payload
@@ -114,6 +115,18 @@ async def verify_billing_transaction(
     if result["status"] == "success":
         apply_verified_transaction(db, user, paystack_data)
         db.commit()
+    elif result["status"] in {"failed", "abandoned"}:
+        reason = result.get("gateway_response") or (
+            "Payment was abandoned before completion." if result["status"] == "abandoned" else "Payment failed."
+        )
+        if not has_recent_notification(db, user_id=user.id, notification_type="payment_failed", within_hours=2):
+            notify_user(
+                db,
+                user.id,
+                "payment_failed",
+                {"reason": reason, "link": f"{settings.frontend_url.rstrip('/')}/upgrade"},
+            )
+        db.commit()
 
     status_info = get_current_user_premium_status(user, db)
     return VerifyTransactionResponse(
@@ -156,6 +169,13 @@ async def cancel_billing(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
 
     mark_subscription_cancelled(db, user)
+    if not has_recent_notification(db, user_id=user.id, notification_type="subscription_cancelled", within_hours=2):
+        notify_user(
+            db,
+            user.id,
+            "subscription_cancelled",
+            {"current_period_end": user.premium_period_end},
+        )
     db.commit()
 
     status_info = get_current_user_premium_status(user, db)

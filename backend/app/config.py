@@ -41,6 +41,14 @@ class Settings(BaseSettings):
     billing_past_due_grace_days: int = 3
     billing_manual_renewal_reminder_days: int = 3
 
+    # Avatar storage — Hugging Face dataset repo
+    hf_token: str = ""
+    hf_repo_id: str = ""
+
+    @property
+    def default_avatar_url(self) -> str:
+        return f"{self.frontend_url.rstrip('/')}/linkbio-mark.png"
+
     @property
     def paystack_yearly_base_amount_ngn(self) -> float:
         """Yearly plan = 12× monthly minus the configured discount (default 15%)."""

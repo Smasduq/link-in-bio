@@ -5,6 +5,7 @@ import { Save } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { Profile } from "@/types/database";
 import { BillingSection } from "@/components/billing/billing-section";
+import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
@@ -34,7 +35,14 @@ export default function SettingsPage() {
     setSaving(true);
     setMessage({ type: "", text: "" });
     try {
-      await apiFetch("/api/profile", { method: "PATCH", body: JSON.stringify(profile) });
+      await apiFetch("/api/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          username: profile.username,
+          bio: profile.bio,
+          full_name: profile.full_name,
+        }),
+      });
       setMessage({ type: "success", text: "Profile updated successfully!" });
     } catch (err: unknown) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Update failed" });
@@ -77,9 +85,12 @@ export default function SettingsPage() {
                 />
               </div>
             </div>
+            <AvatarUpload
+              avatarUrl={profile.avatar_url || null}
+              onUploaded={(avatarUrl) => setProfile((current) => ({ ...current, avatar_url: avatarUrl }))}
+            />
             <Input label="Display Name" value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} placeholder="Your name" />
             <Textarea label="Bio" rows={4} placeholder="Tell your story..." value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} />
-            <Input label="Avatar URL" type="url" placeholder="https://..." value={profile.avatar_url} onChange={(e) => setProfile({ ...profile, avatar_url: e.target.value })} />
             <Button type="submit" loading={saving}><Save className="h-4 w-4" /> Save Changes</Button>
           </form>
         </CardContent>

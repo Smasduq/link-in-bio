@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import SessionProvider from "@/components/SessionProvider";
+import { ToastProvider } from "@/components/ui/toast";
 import { SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 
 const inter = Inter({
@@ -37,7 +38,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
       <body className="min-h-screen font-sans">
         <ThemeProvider>
-          <SessionProvider>{children}</SessionProvider>
+          <ToastProvider>
+            <SessionProvider>{children}</SessionProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

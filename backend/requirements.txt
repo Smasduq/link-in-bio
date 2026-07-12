@@ -9,3 +9,5 @@ pydantic[email]>=2.11.0
 pydantic-settings>=2.7.0
 httpx>=0.28.0
 geoip2>=4.8.0
+huggingface_hub>=0.28.0
+Pillow>=11.0.0

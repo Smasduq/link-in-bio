@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models.billing_event import BillingEvent
 from app.models.user import User
+from app.services.notifications import has_recent_notification, notify_user
 from app.services.plan_catalog import plan_pricing_payload
 
 logger = logging.getLogger(__name__)
@@ -78,37 +79,61 @@ def _access_until(user: User) -> datetime | None:
     return period_end
 
 
-def maybe_send_manual_renewal_reminder(db: Session, user: User) -> None:
-    if user.renewal_type != "manual" or not user.is_premium or user.manual_renewal_reminder_sent_at:
+def _charge_amount_ngn(data: dict[str, Any]) -> float:
+    amount = data.get("amount")
+    if amount is not None:
+        return float(amount) / 100
+    metadata = data.get("metadata") or {}
+    if metadata.get("total_charge") is not None:
+        return float(metadata["total_charge"])
+    if metadata.get("base_amount") is not None:
+        return float(metadata["base_amount"])
+    return 0.0
+
+
+def _plan_charge_amount(db: Session, plan_slug: str | None) -> float:
+    if not plan_slug:
+        return 0.0
+    for item in plan_pricing_payload(db):
+        if item["slug"] == plan_slug:
+            return float(item["total_charge"])
+    return 0.0
+
+
+def maybe_send_scheduled_billing_notifications(db: Session, user: User) -> None:
+    if not user.is_premium:
         return
 
     period_end = _as_utc(user.premium_period_end)
     if period_end is None:
         return
 
-    now = _utcnow()
-    days_left = (period_end - now).total_seconds() / 86400
+    days_left = (period_end - _utcnow()).total_seconds() / 86400
     if days_left > settings.billing_manual_renewal_reminder_days or days_left < 0:
         return
 
-    try:
-        from app.services.email import send_manual_renewal_reminder_email
+    plan_slug = user.premium_plan or "monthly"
+    amount = _plan_charge_amount(db, plan_slug)
+    context = {
+        "plan": plan_slug,
+        "plan_name": f"Pro {plan_slug}",
+        "amount": amount,
+        "period_end": period_end,
+    }
 
-        sent = send_manual_renewal_reminder_email(
-            to=user.email,
-            expires_at=period_end,
-            plan=user.premium_plan or "monthly",
-        )
-        if sent:
-            user.manual_renewal_reminder_sent_at = now
-            db.add(user)
-    except Exception:
-        logger.exception("Failed to send manual renewal reminder for user %s", user.id)
+    if user.renewal_type == "manual":
+        if not has_recent_notification(db, user_id=user.id, notification_type="access_expiring"):
+            notify_user(db, user.id, "access_expiring", context)
+        return
+
+    if user.renewal_type == "auto" and user.subscription_status in {None, "active"}:
+        if not has_recent_notification(db, user_id=user.id, notification_type="renewal_upcoming"):
+            notify_user(db, user.id, "renewal_upcoming", context)
 
 
 def sync_subscription_access(db: Session, user: User) -> None:
     """Downgrade expired subscriptions and one-time plans on each status check."""
-    maybe_send_manual_renewal_reminder(db, user)
+    maybe_send_scheduled_billing_notifications(db, user)
 
     if not user.is_premium:
         return
@@ -121,6 +146,9 @@ def sync_subscription_access(db: Session, user: User) -> None:
     if user.subscription_status in {"cancelled", "past_due", "active"}:
         user.subscription_status = "expired"
     db.add(user)
+
+    if not has_recent_notification(db, user_id=user.id, notification_type="access_expired", within_hours=168):
+        notify_user(db, user.id, "access_expired", {})
 
 
 def get_current_user_premium_status(user: User, db: Session | None = None) -> dict[str, Any]:
@@ -269,6 +297,10 @@ def activate_manual_premium(
 def process_successful_charge(db: Session, user: User, data: dict[str, Any], *, reference: str | None = None) -> None:
     metadata = data.get("metadata") or {}
     plan = metadata.get("plan") or user.premium_plan or "monthly"
+    was_resubscribe = bool(
+        user.subscription_status in {"expired", "cancelled"}
+        or (user.premium_period_end is not None and not user.is_premium)
+    )
 
     if _is_subscription_charge(data):
         subscription_fields = _extract_subscription_fields(data)
@@ -282,17 +314,28 @@ def process_successful_charge(db: Session, user: User, data: dict[str, Any], *, 
             email_token=subscription_fields["email_token"],
         )
         logger.info("Auto-renew premium activated for user %s", user.id)
-        return
+    else:
+        activate_manual_premium(
+            db,
+            user,
+            plan=plan,
+            reference=reference or data.get("reference"),
+            paid_at=_parse_paid_at(data),
+            customer_code=(data.get("customer") or {}).get("customer_code"),
+        )
+        logger.info("One-time premium activated for user %s until %s", user.id, user.premium_period_end)
 
-    activate_manual_premium(
-        db,
-        user,
-        plan=plan,
-        reference=reference or data.get("reference"),
-        paid_at=_parse_paid_at(data),
-        customer_code=(data.get("customer") or {}).get("customer_code"),
-    )
-    logger.info("One-time premium activated for user %s until %s", user.id, user.premium_period_end)
+    amount = _charge_amount_ngn(data) or _plan_charge_amount(db, plan)
+    payment_context = {
+        "plan": plan,
+        "plan_name": f"Pro {plan}",
+        "amount": amount,
+        "period_end": user.premium_period_end,
+    }
+    if not has_recent_notification(db, user_id=user.id, notification_type="payment_success", within_hours=2):
+        notify_user(db, user.id, "payment_success", payment_context)
+    if was_resubscribe and not has_recent_notification(db, user_id=user.id, notification_type="resubscribed", within_hours=2):
+        notify_user(db, user.id, "resubscribed", payment_context)
 
 
 def mark_subscription_cancelled(db: Session, user: User) -> None:
@@ -307,16 +350,17 @@ def mark_subscription_past_due(db: Session, user: User) -> None:
     user.premium_grace_until = grace_base + timedelta(days=settings.billing_past_due_grace_days)
     db.add(user)
 
-    try:
-        from app.services.email import send_payment_failed_email
-
-        send_payment_failed_email(
-            to=user.email,
-            grace_until=user.premium_grace_until,
-            plan=user.premium_plan or "monthly",
+    if not has_recent_notification(db, user_id=user.id, notification_type="renewal_failed", within_hours=48):
+        notify_user(
+            db,
+            user.id,
+            "renewal_failed",
+            {
+                "plan": user.premium_plan or "monthly",
+                "period_end": user.premium_grace_until,
+                "retry_info": "Paystack does not retry failed subscription payments automatically.",
+            },
         )
-    except Exception:
-        logger.exception("Failed to send payment failed email for user %s", user.id)
 
 
 def apply_verified_transaction(db: Session, user: User, paystack_data: dict[str, Any]) -> None:

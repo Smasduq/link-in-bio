@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { Crown } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { type BillingStatus, type CancelBillingResponse, formatNgn } from "@/lib/plans";
+import { CancelSubscriptionModal, formatBillingDate } from "@/components/billing/cancel-subscription-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CancelSubscriptionModal, formatBillingDate } from "@/components/billing/cancel-subscription-modal";
+import { useToast } from "@/components/ui/toast";
 
 type BillingViewState = "free" | "active_auto" | "cancelled" | "manual_active" | "past_due";
 
@@ -19,27 +20,11 @@ function getBillingViewState(billing: BillingStatus | null): BillingViewState {
   return "active_auto";
 }
 
-function BillingToast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  useEffect(() => {
-    const timer = window.setTimeout(onDismiss, 5000);
-    return () => window.clearTimeout(timer);
-  }, [message, onDismiss]);
-
-  return (
-    <div
-      role="status"
-      className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-    >
-      {message}
-    </div>
-  );
-}
-
 export function BillingSection() {
+  const { showToast } = useToast();
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
 
   const loadBilling = () =>
     apiFetch<BillingStatus>("/api/billing/status")
@@ -56,7 +41,8 @@ export function BillingSection() {
 
   const handleCancelSuccess = (result: CancelBillingResponse) => {
     const until = result.premium_until ? formatBillingDate(result.premium_until) : formattedPeriodEnd;
-    setToastMessage(`Subscription cancelled — Pro features active until ${until ?? "your billing period ends"}`);
+    const message = `Subscription cancelled — Pro features active until ${until ?? "your billing period ends"}`;
+    showToast(message, "success");
     void loadBilling();
   };
 
@@ -86,8 +72,6 @@ export function BillingSection() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {toastMessage ? <BillingToast message={toastMessage} onDismiss={() => setToastMessage("")} /> : null}
-
           {viewState === "free" ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
