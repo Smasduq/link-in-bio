@@ -44,6 +44,21 @@ class InitializeBillingResponse(BaseModel):
     pricing: FeeBreakdown
 
 
+class StartTrialRequest(BaseModel):
+    plan: Literal["monthly"] = Field(default="monthly", description="Trial converts to this plan after 30 days")
+
+
+class StartTrialResponse(BaseModel):
+    access_code: str
+    reference: str
+    authorization_url: str
+    plan: str
+    public_key: str
+    tokenization_amount_ngn: float
+    tokenization_amount_kobo: int
+    message: str = "A small refundable charge verifies your card. Your free trial starts after confirmation."
+
+
 class VerifyTransactionResponse(BaseModel):
     status: Literal["success", "failed", "abandoned"]
     reference: str
@@ -66,6 +81,9 @@ class BillingStatusResponse(BaseModel):
     subscription_status: str | None = None
     can_cancel: bool = False
     is_cancelled_pending_expiry: bool = False
+    is_trial: bool = False
+    trial_used: bool = False
+    trial_ends_at: datetime | None = None
     monthly_base_amount_ngn: float | None = None
     yearly_base_amount_ngn: float | None = None
     yearly_savings_percent: float | None = None

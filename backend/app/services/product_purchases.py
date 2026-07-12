@@ -113,14 +113,31 @@ def _get_product_for_fulfillment(db: Session, product_id: str) -> Product | None
     )
 
 
-async def fulfill_product_purchase(db: Session, reference: str) -> ProductPurchase | None:
+async def fulfill_product_purchase(
+    db: Session,
+    reference: str,
+    *,
+    resend_email_if_exists: bool = False,
+) -> tuple[ProductPurchase | None, bool]:
     """
     Verify a Paystack transaction and create a product purchase record.
     Always re-verifies with Paystack — never trusts webhook payload amounts alone.
     """
-    existing = db.query(ProductPurchase).filter(ProductPurchase.paystack_reference == reference).first()
+    existing = (
+        db.query(ProductPurchase)
+        .options(joinedload(ProductPurchase.product))
+        .filter(ProductPurchase.paystack_reference == reference)
+        .first()
+    )
     if existing:
-        return existing
+        email_sent = False
+        if resend_email_if_exists and existing.product:
+            email_sent = _send_buyer_download_email(
+                existing.buyer_email,
+                existing.product,
+                _download_page_url(existing.download_token),
+            )
+        return existing, email_sent
 
     try:
         verified = await verify_transaction(reference)
@@ -129,18 +146,18 @@ async def fulfill_product_purchase(db: Session, reference: str) -> ProductPurcha
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
     if verified["status"] != "success":
-        return None
+        return None, False
 
     paystack_data = verified["data"]
     metadata = paystack_data.get("metadata") or {}
     product_id = metadata.get("product_id")
     if not product_id:
-        return None
+        return None, False
 
     product = _get_product_for_fulfillment(db, product_id)
     if product is None:
         logger.error("Product purchase for unknown product_id=%s ref=%s", product_id, reference)
-        return None
+        return None, False
 
     expected_kobo = total_charge_kobo(float(product.price))
     actual_kobo = int(paystack_data.get("amount") or 0)
@@ -159,7 +176,7 @@ async def fulfill_product_purchase(db: Session, reference: str) -> ProductPurcha
     buyer_email = (metadata.get("buyer_email") or paystack_data.get("customer", {}).get("email") or "").strip().lower()
     if not buyer_email:
         logger.error("Product purchase missing buyer email ref=%s", reference)
-        return None
+        return None, False
 
     pricing = _product_pricing(product)
     token = secrets.token_urlsafe(32)
@@ -177,7 +194,7 @@ async def fulfill_product_purchase(db: Session, reference: str) -> ProductPurcha
     db.flush()
 
     download_url = _download_page_url(token)
-    _send_buyer_download_email(buyer_email, product, download_url)
+    email_sent = _send_buyer_download_email(buyer_email, product, download_url)
 
     creator = product.profile.user if product.profile else None
     if creator:
@@ -191,14 +208,14 @@ async def fulfill_product_purchase(db: Session, reference: str) -> ProductPurcha
             notify_user(db, creator.id, "product_sale", sale_context)
 
     logger.info("Product purchase fulfilled product=%s ref=%s buyer=%s", product.id, reference, buyer_email)
-    return purchase
+    return purchase, email_sent
 
 
 async def process_product_purchase_webhook(db: Session, reference: str | None) -> None:
     if not reference:
         return
     try:
-        await fulfill_product_purchase(db, reference)
+        await fulfill_product_purchase(db, reference, resend_email_if_exists=False)
     except ValueError as exc:
         logger.error("Product purchase fulfillment rejected for %s: %s", reference, exc)
     except HTTPException:
@@ -258,7 +275,18 @@ def issue_signed_download(db: Session, token: str) -> str:
     return signed_url
 
 
-def _send_buyer_download_email(buyer_email: str, product: Product, download_url: str) -> None:
+def purchase_verify_payload(purchase: ProductPurchase) -> dict:
+    product = purchase.product
+    return {
+        "status": "success",
+        "reference": purchase.paystack_reference,
+        "buyer_email": purchase.buyer_email,
+        "product_title": product.title if product else None,
+        "download_url": _download_page_url(purchase.download_token),
+    }
+
+
+def _send_buyer_download_email(buyer_email: str, product: Product, download_url: str) -> bool:
     subject = f"Your download: {product.title} — {SITE_NAME}"
     content = (
         f"<h1 style=\"margin: 0 0 12px; font-size: 24px; font-weight: 800; color: #111827;\">"
@@ -274,7 +302,7 @@ def _send_buyer_download_email(buyer_email: str, product: Product, download_url:
         content=content,
         preheader=f"Download {product.title}",
     )
-    try:
-        send_email(to=buyer_email, subject=subject, html_body=html_body)
-    except Exception:
-        logger.exception("Failed to send product download email to %s", buyer_email)
+    sent = send_email(to=buyer_email, subject=subject, html_body=html_body)
+    if not sent:
+        logger.error("Failed to send product download email to %s", buyer_email)
+    return sent

@@ -13,6 +13,7 @@ from app.models.billing_event import BillingEvent
 from app.models.user import User
 from app.services.notifications import has_recent_notification, notify_user
 from app.services.plan_catalog import plan_pricing_payload
+from app.services.trial_billing import is_trial_tokenization_charge, is_within_trial_grace, trial_access_until
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,11 @@ def _is_subscription_charge(data: dict[str, Any]) -> bool:
 
 
 def _access_until(user: User) -> datetime | None:
+    if user.is_trial:
+        trial_end = trial_access_until(user)
+        if trial_end and (_utcnow() <= trial_end or is_within_trial_grace(user)):
+            return trial_end if _utcnow() <= trial_end else _as_utc(user.premium_period_end)
+
     period_end = _as_utc(user.premium_period_end)
     grace_until = _as_utc(user.premium_grace_until)
     if user.subscription_status == "past_due" and grace_until:
@@ -100,8 +106,41 @@ def _plan_charge_amount(db: Session, plan_slug: str | None) -> float:
     return 0.0
 
 
+def maybe_send_trial_ending_notification(db: Session, user: User) -> None:
+    if not user.is_trial or not user.trial_ends_at:
+        return
+
+    trial_end = _as_utc(user.trial_ends_at)
+    if trial_end is None:
+        return
+
+    days_left = (trial_end - _utcnow()).total_seconds() / 86400
+    if days_left > 2 or days_left <= 1:
+        return
+
+    plan_slug = user.premium_plan or "monthly"
+    amount = _plan_charge_amount(db, plan_slug)
+    if has_recent_notification(db, user_id=user.id, notification_type="trial_ending", within_hours=72):
+        return
+
+    notify_user(
+        db,
+        user.id,
+        "trial_ending",
+        {
+            "plan": plan_slug,
+            "amount": amount,
+            "period_end": trial_end,
+        },
+    )
+
+
 def maybe_send_scheduled_billing_notifications(db: Session, user: User) -> None:
     if not user.is_premium:
+        return
+
+    if user.is_trial:
+        maybe_send_trial_ending_notification(db, user)
         return
 
     period_end = _as_utc(user.premium_period_end)
@@ -136,6 +175,9 @@ def sync_subscription_access(db: Session, user: User) -> None:
     maybe_send_scheduled_billing_notifications(db, user)
 
     if not user.is_premium:
+        return
+
+    if user.is_trial and is_within_trial_grace(user):
         return
 
     access_until = _access_until(user)
@@ -175,7 +217,10 @@ def get_current_user_premium_status(user: User, db: Session | None = None) -> di
             and user.subscription_status in {None, "active", "past_due"}
             and active
         ),
-        "is_cancelled_pending_expiry": user.subscription_status == "cancelled" and active,
+        "is_cancelled_pending_expiry": user.subscription_status == "cancelled" and active and not user.is_trial,
+        "is_trial": bool(user.is_trial and active),
+        "trial_used": bool(user.trial_used),
+        "trial_ends_at": _as_utc(user.trial_ends_at) if user.is_trial else None,
     }
 
 
@@ -207,6 +252,11 @@ def _extract_subscription_fields(data: dict[str, Any]) -> dict[str, str | None]:
         "email_token": subscription.get("email_token") or data.get("email_token"),
         "customer_code": (data.get("customer") or {}).get("customer_code"),
     }
+
+
+def find_user_for_paystack_event(db: Session, data: dict[str, Any]) -> User | None:
+    """Resolve the user for a Paystack webhook payload."""
+    return _find_user_for_event(db, data)
 
 
 def _find_user_for_event(db: Session, data: dict[str, Any]) -> User | None:
@@ -295,12 +345,21 @@ def activate_manual_premium(
 
 
 def process_successful_charge(db: Session, user: User, data: dict[str, Any], *, reference: str | None = None) -> None:
+    if is_trial_tokenization_charge(data):
+        return
+
     metadata = data.get("metadata") or {}
     plan = metadata.get("plan") or user.premium_plan or "monthly"
     was_resubscribe = bool(
         user.subscription_status in {"expired", "cancelled"}
         or (user.premium_period_end is not None and not user.is_premium)
     )
+    ending_trial = bool(user.is_trial)
+
+    if ending_trial:
+        user.is_trial = False
+        user.trial_ends_at = None
+        db.add(user)
 
     if _is_subscription_charge(data):
         subscription_fields = _extract_subscription_fields(data)
@@ -431,6 +490,9 @@ def billing_status_payload(user: User, db: Session) -> dict[str, Any]:
         "subscription_status": status["subscription_status"],
         "can_cancel": status["can_cancel"],
         "is_cancelled_pending_expiry": status["is_cancelled_pending_expiry"],
+        "is_trial": status["is_trial"],
+        "trial_used": status["trial_used"],
+        "trial_ends_at": status["trial_ends_at"],
         "monthly_base_amount_ngn": monthly.get("base_amount"),
         "yearly_base_amount_ngn": yearly.get("base_amount"),
         "yearly_savings_percent": yearly.get("yearly_savings_percent"),
@@ -461,6 +523,8 @@ def billing_history_payload(db: Session, user_id: str) -> list[dict[str, Any]]:
         data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
         metadata = data.get("metadata") or {}
         if metadata.get("product_id"):
+            continue
+        if metadata.get("purpose") == "trial_tokenization":
             continue
 
         seen_references.add(reference)

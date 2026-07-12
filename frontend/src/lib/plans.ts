@@ -77,11 +77,25 @@ export type BillingStatus = {
   subscription_status: string | null;
   can_cancel: boolean;
   is_cancelled_pending_expiry: boolean;
+  is_trial: boolean;
+  trial_used: boolean;
+  trial_ends_at: string | null;
   monthly_base_amount_ngn: number | null;
   yearly_base_amount_ngn: number | null;
   yearly_savings_percent: number | null;
   yearly_savings_amount: number | null;
   paystack_public_key: string | null;
+};
+
+export type StartTrialResponse = {
+  access_code: string;
+  reference: string;
+  authorization_url: string;
+  plan: BillingPlan;
+  public_key: string;
+  tokenization_amount_ngn: number;
+  tokenization_amount_kobo: number;
+  message: string;
 };
 
 export type VerifyTransactionResponse = {

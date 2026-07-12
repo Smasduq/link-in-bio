@@ -49,6 +49,15 @@ export type PurchaseInitializeResponse = {
   };
 };
 
+export type PurchaseVerifyResponse = {
+  status: "success" | "failed" | "pending";
+  reference: string;
+  buyer_email?: string | null;
+  product_title?: string | null;
+  download_url?: string | null;
+  email_sent?: boolean;
+};
+
 export function formatNgn(amount: number): string {
   return amount % 1 === 0 ? `₦${amount.toLocaleString()}` : `₦${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -18,11 +18,12 @@ from app.schemas.product import (
     PublicProductResponse,
     PurchaseInitializeRequest,
     PurchaseInitializeResponse,
+    PurchaseVerifyResponse,
 )
 from app.services.cloudinary_storage import build_public_image_url, upload_product_cover, upload_product_file
 from app.services.fee_pricing import calculate_fee_inclusive_amount
 from app.services.premium_access import assert_can_create_product
-from app.services.product_purchases import initialize_product_purchase
+from app.services.product_purchases import fulfill_product_purchase, initialize_product_purchase, purchase_verify_payload
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -198,3 +199,24 @@ async def initialize_purchase(
 
     result = await initialize_product_purchase(db, product=product, buyer_email=str(payload.buyer_email))
     return PurchaseInitializeResponse(**result)
+
+
+@router.get("/purchase/verify", response_model=PurchaseVerifyResponse)
+async def verify_product_purchase(
+    reference: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+):
+    """Verify payment and fulfill the purchase — sends the buyer their download link email."""
+    try:
+        purchase, email_sent = await fulfill_product_purchase(db, reference, resend_email_if_exists=True)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+
+    if purchase is None:
+        return PurchaseVerifyResponse(status="failed", reference=reference, email_sent=False)
+
+    db.commit()
+    payload = purchase_verify_payload(purchase)
+    return PurchaseVerifyResponse(email_sent=email_sent, **payload)

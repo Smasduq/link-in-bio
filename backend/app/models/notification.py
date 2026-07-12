@@ -15,6 +15,7 @@ NOTIFICATION_TYPES = (
     "access_expiring",
     "access_expired",
     "resubscribed",
+    "trial_ending",
     "product_sale",
     "good_morning",
     "good_evening",
@@ -32,6 +33,7 @@ BILLING_NOTIFICATION_TYPES = frozenset({
     "access_expiring",
     "access_expired",
     "resubscribed",
+    "trial_ending",
     "product_sale",
 })
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -188,3 +189,78 @@ async def disable_paystack_subscription(*, subscription_code: str, email_token: 
         message = payload.get("message", "Paystack subscription disable failed")
         logger.error("Paystack disable error: %s — %s", response.status_code, message)
         raise RuntimeError(message)
+
+
+async def refund_transaction(*, reference: str, amount_kobo: int | None = None) -> dict[str, Any]:
+    """Refund a successful transaction. Call only after charge.success is confirmed."""
+    payload: dict[str, Any] = {"transaction": reference}
+    if amount_kobo is not None:
+        payload["amount"] = amount_kobo
+
+    response = await _paystack_request("POST", "/refund", json=payload)
+    data = response.json()
+    if response.status_code >= 400 or not data.get("status"):
+        message = data.get("message", "Paystack refund failed")
+        logger.error("Paystack refund error: %s — %s", response.status_code, message)
+        raise RuntimeError(message)
+    return data.get("data") or {}
+
+
+async def create_paystack_subscription(
+    *,
+    customer_code: str,
+    plan_code: str,
+    authorization_code: str,
+    start_date: datetime,
+) -> dict[str, Any]:
+    """Create a subscription with deferred first charge via start_date (ISO 8601)."""
+    start_iso = start_date.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    payload = {
+        "customer": customer_code,
+        "plan": plan_code,
+        "authorization": authorization_code,
+        "start_date": start_iso,
+    }
+    response = await _paystack_request("POST", "/subscription", json=payload)
+    data = response.json()
+    if response.status_code >= 400 or not data.get("status"):
+        message = data.get("message", "Paystack subscription creation failed")
+        logger.error("Paystack subscription error: %s — %s", response.status_code, message)
+        raise RuntimeError(message)
+    return data.get("data") or {}
+
+
+async def initialize_trial_tokenization(
+    *,
+    email: str,
+    user_id: str,
+    plan_slug: str,
+    callback_url: str,
+) -> dict[str, Any]:
+    """Small one-off charge to tokenize a card — no plan attached (no immediate subscription)."""
+    amount_kobo = settings.trial_tokenization_amount_kobo
+    payload: dict[str, Any] = {
+        "email": email,
+        "amount": amount_kobo,
+        "currency": "NGN",
+        "callback_url": callback_url,
+        "metadata": {
+            "user_id": user_id,
+            "plan": plan_slug,
+            "purpose": "trial_tokenization",
+            "auto_renew": False,
+            "custom_fields": [
+                {"display_name": "Purpose", "variable_name": "purpose", "value": "trial_tokenization"},
+                {"display_name": "User ID", "variable_name": "user_id", "value": user_id},
+            ],
+        },
+    }
+
+    response = await _paystack_request("POST", "/transaction/initialize", json=payload)
+    data = response.json()
+    if response.status_code >= 400 or not data.get("status"):
+        message = data.get("message", "Paystack initialize failed")
+        logger.error("Paystack trial initialize error: %s — %s", response.status_code, message)
+        raise RuntimeError(message)
+
+    return data["data"]

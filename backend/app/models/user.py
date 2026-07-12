@@ -33,6 +33,9 @@ class User(Base):
     last_weekly_summary_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     last_inactivity_nudge_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     clicks_milestone_sent: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    is_trial: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    trial_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     profile: Mapped["Profile"] = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")

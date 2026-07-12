@@ -17,6 +17,8 @@ export function formatBillingDate(iso: string): string {
 type CancelSubscriptionModalProps = {
   open: boolean;
   periodEnd: string;
+  trialMode?: boolean;
+  chargeAmount?: number | null;
   onClose: () => void;
   onSuccess: (result: CancelBillingResponse) => void;
 };
@@ -24,6 +26,8 @@ type CancelSubscriptionModalProps = {
 export function CancelSubscriptionModal({
   open,
   periodEnd,
+  trialMode = false,
+  chargeAmount,
   onClose,
   onSuccess,
 }: CancelSubscriptionModalProps) {
@@ -57,13 +61,23 @@ export function CancelSubscriptionModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Cancel your Pro subscription?"
+      title={trialMode ? "Cancel your free trial?" : "Cancel your Pro subscription?"}
       dismissible={!cancelling}
     >
       <p className="text-sm leading-relaxed text-muted-foreground">
-        You&apos;ll keep all Pro features until{" "}
-        <span className="font-medium text-foreground">{formattedEnd}</span>. After that, your account switches to
-        Free.
+        {trialMode ? (
+          <>
+            Cancel now to avoid being charged
+            {chargeAmount != null ? ` ${new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(chargeAmount)}` : ""}{" "}
+            on <span className="font-medium text-foreground">{formattedEnd}</span>. Pro access ends immediately.
+          </>
+        ) : (
+          <>
+            You&apos;ll keep all Pro features until{" "}
+            <span className="font-medium text-foreground">{formattedEnd}</span>. After that, your account switches to
+            Free.
+          </>
+        )}
       </p>
 
       <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">

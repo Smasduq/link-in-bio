@@ -153,6 +153,9 @@ def _migrate_users_billing_schema(conn, is_sqlite: bool) -> None:
             ("renewal_type", "ALTER TABLE users ADD COLUMN renewal_type VARCHAR(10)"),
             ("manual_renewal_reminder_sent_at", "ALTER TABLE users ADD COLUMN manual_renewal_reminder_sent_at DATETIME"),
             ("last_paystack_reference", "ALTER TABLE users ADD COLUMN last_paystack_reference VARCHAR(255)"),
+            ("is_trial", "ALTER TABLE users ADD COLUMN is_trial BOOLEAN NOT NULL DEFAULT 0"),
+            ("trial_ends_at", "ALTER TABLE users ADD COLUMN trial_ends_at DATETIME"),
+            ("trial_used", "ALTER TABLE users ADD COLUMN trial_used BOOLEAN NOT NULL DEFAULT 0"),
         ]
         for column, ddl in additions:
             if column not in names:
@@ -177,6 +180,9 @@ def _migrate_users_billing_schema(conn, is_sqlite: bool) -> None:
         ("renewal_type", "ALTER TABLE users ADD COLUMN renewal_type VARCHAR(10)"),
         ("manual_renewal_reminder_sent_at", "ALTER TABLE users ADD COLUMN manual_renewal_reminder_sent_at TIMESTAMPTZ"),
         ("last_paystack_reference", "ALTER TABLE users ADD COLUMN last_paystack_reference VARCHAR(255)"),
+        ("is_trial", "ALTER TABLE users ADD COLUMN is_trial BOOLEAN NOT NULL DEFAULT false"),
+        ("trial_ends_at", "ALTER TABLE users ADD COLUMN trial_ends_at TIMESTAMPTZ"),
+        ("trial_used", "ALTER TABLE users ADD COLUMN trial_used BOOLEAN NOT NULL DEFAULT false"),
     ):
         row = conn.execute(
             text(

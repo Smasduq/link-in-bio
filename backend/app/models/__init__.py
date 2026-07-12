@@ -11,6 +11,7 @@ from app.models.notification import Notification
 from app.models.notification_preferences import NotificationPreferences
 from app.models.profile import Profile
 from app.models.push_subscription import PushSubscription
+from app.models.trial_email_claim import TrialEmailClaim
 from app.models.user import User
 
 __all__ = [
@@ -26,6 +27,7 @@ __all__ = [
     "Notification",
     "NotificationPreferences",
     "PushSubscription",
+    "TrialEmailClaim",
     "Product",
     "ProductPurchase",
     "Subscriber",

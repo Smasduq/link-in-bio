@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -55,6 +56,15 @@ class PurchaseInitializeResponse(BaseModel):
     product_id: str
     buyer_email: str
     pricing: dict
+
+
+class PurchaseVerifyResponse(BaseModel):
+    status: Literal["success", "failed", "pending"]
+    reference: str
+    buyer_email: str | None = None
+    product_title: str | None = None
+    download_url: str | None = None
+    email_sent: bool = False
 
 
 class ProductSaleResponse(BaseModel):

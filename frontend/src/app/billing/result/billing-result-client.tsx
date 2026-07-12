@@ -18,6 +18,7 @@ export default function BillingResultPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const reference = searchParams.get("reference") ?? searchParams.get("trxref");
+  const isTrialFlow = searchParams.get("trial") === "1";
   const { user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const [state, setState] = useState<VerifyState>("loading");
@@ -37,7 +38,10 @@ export default function BillingResultPageClient() {
         setResult(data);
         if (data.status === "success") {
           setState("success");
-          showToast("Payment successful — you're now Pro!", "success");
+          showToast(
+            isTrialFlow ? "Free trial started — enjoy Pro for 30 days!" : "Payment successful — you're now Pro!",
+            "success"
+          );
         } else if (data.status === "abandoned") {
           setState("abandoned");
           showToast("Payment was cancelled before completion.", "error");
@@ -78,10 +82,13 @@ export default function BillingResultPageClient() {
           <Card className="w-full border-emerald-200 bg-emerald-50/40 dark:border-emerald-900 dark:bg-emerald-950/20">
             <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
               <CheckCircle2 className="h-12 w-12 text-emerald-600" />
-              <h1 className="font-display text-2xl font-bold">You&apos;re now Pro!</h1>
+              <h1 className="font-display text-2xl font-bold">
+                {isTrialFlow ? "Your free trial is active!" : "You&apos;re now Pro!"}
+              </h1>
               <p className="text-sm text-muted-foreground">
-                Payment confirmed. Your Pro features are active
-                {result?.premium_until ? ` until ${new Date(result.premium_until).toLocaleDateString()}` : ""}.
+                {isTrialFlow
+                  ? `Pro features are unlocked${result?.premium_until ? ` until ${new Date(result.premium_until).toLocaleDateString()}` : " for 30 days"}.`
+                  : `Payment confirmed. Your Pro features are active${result?.premium_until ? ` until ${new Date(result.premium_until).toLocaleDateString()}` : ""}.`}
               </p>
               <Button className="w-full" onClick={() => router.push("/dashboard")}>
                 Go to dashboard

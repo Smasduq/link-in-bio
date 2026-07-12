@@ -21,6 +21,7 @@ import {
   type InitializeBillingResponse,
   type PlanPricingItem,
   type PlanPricingResponse,
+  type StartTrialResponse,
   formatNgn,
   FEATURES,
   PRO_UPGRADE_HIGHLIGHT,
@@ -38,6 +39,7 @@ export default function UpgradePageClient() {
   const [plan, setPlan] = useState<BillingPlan>("monthly");
   const [autoRenew, setAutoRenew] = useState(searchParams.get("renew") !== "manual");
   const [paymentState, setPaymentState] = useState<PaymentState>("idle");
+  const [trialLoading, setTrialLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -87,11 +89,48 @@ export default function UpgradePageClient() {
     }
   }, [autoRenew, plan, router, user]);
 
+  const openTrial = useCallback(async () => {
+    if (!user) return;
+    setTrialLoading(true);
+    setErrorMessage("");
+
+    try {
+      const init = await apiFetch<StartTrialResponse>("/api/billing/start-trial", {
+        method: "POST",
+        body: JSON.stringify({ plan: "monthly" }),
+      });
+
+      const PaystackPop = (await import("@paystack/inline-js")).default;
+      const popup = new PaystackPop();
+
+      popup.newTransaction({
+        key: init.public_key,
+        email: user.email,
+        amount: init.tokenization_amount_kobo,
+        reference: init.reference,
+        access_code: init.access_code,
+        onSuccess: (response?: { reference?: string }) => {
+          const ref = response?.reference ?? init.reference;
+          router.push(`/billing/result?reference=${encodeURIComponent(ref)}&trial=1`);
+        },
+        onCancel: () => {
+          setTrialLoading(false);
+        },
+      });
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Could not start free trial");
+    } finally {
+      setTrialLoading(false);
+    }
+  }, [router, user]);
+
   const selectedPlan = planPricing.find((item) => item.slug === plan);
   const yearlyPlan = planPricing.find((item) => item.slug === "yearly");
   const yearlySavingsPercent = yearlyPlan?.yearly_savings_percent ?? billing?.yearly_savings_percent ?? 15;
   const yearlySavingsAmount = yearlyPlan?.yearly_savings_amount ?? billing?.yearly_savings_amount ?? null;
-  const isPro = Boolean(billing?.is_premium && billing.subscription_status !== "cancelled");
+  const isOnTrial = Boolean(billing?.is_trial && billing.is_premium);
+  const isPro = Boolean(billing?.is_premium && billing.subscription_status !== "cancelled" && !isOnTrial);
+  const canStartTrial = Boolean(billing && !billing.trial_used && !billing.is_premium);
 
   if (authLoading || !user) {
     return (
@@ -117,7 +156,21 @@ export default function UpgradePageClient() {
           </p>
         </div>
 
-        {isPro ? (
+        {isOnTrial ? (
+          <Card className="mx-auto max-w-lg border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/20">
+            <CardContent className="p-6 text-center">
+              <p className="font-semibold text-emerald-700 dark:text-emerald-400">You&apos;re on a free trial</p>
+              {billing?.trial_ends_at ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Trial ends {new Date(billing.trial_ends_at).toLocaleDateString()}
+                </p>
+              ) : null}
+              <Button className="mt-4" variant="outline" onClick={() => router.push("/dashboard/settings/billing")}>
+                Manage billing
+              </Button>
+            </CardContent>
+          </Card>
+        ) : isPro ? (
           <Card className="mx-auto max-w-lg border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/20">
             <CardContent className="p-6 text-center">
               <p className="font-semibold text-emerald-700 dark:text-emerald-400">You&apos;re on Pro</p>
@@ -187,6 +240,22 @@ export default function UpgradePageClient() {
                 features={FEATURES.map((f) => ({ label: f.label, included: true }))}
               />
             </div>
+
+            {canStartTrial && plan === "monthly" ? (
+              <div className="mx-auto mt-6 max-w-md text-center">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  loading={trialLoading}
+                  onClick={() => void openTrial()}
+                >
+                  Start free trial — 1 month on us
+                </Button>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Verify your card with a small refundable charge. You won&apos;t be billed for Pro until the trial ends.
+                </p>
+              </div>
+            ) : null}
 
             {selectedPlan ? (
               <Card className="mx-auto mt-6 max-w-md border-dashed">

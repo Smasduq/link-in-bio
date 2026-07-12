@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     paystack_yearly_discount_percent: float = 15.0
     billing_past_due_grace_days: int = 3
     billing_manual_renewal_reminder_days: int = 3
+    trial_days: int = 30
+    trial_tokenization_amount_ngn: float = 50.0
     product_download_token_days: int = 7
     product_max_file_bytes: int = 50 * 1024 * 1024
 
@@ -58,6 +60,10 @@ class Settings(BaseSettings):
     @property
     def resolved_push_icon_url(self) -> str:
         return self.push_icon_url or f"{self.frontend_url.rstrip('/')}/logo.png"
+
+    @property
+    def trial_tokenization_amount_kobo(self) -> int:
+        return int(round(self.trial_tokenization_amount_ngn * 100))
 
     @property
     def paystack_yearly_base_amount_ngn(self) -> float:

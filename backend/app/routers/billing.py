@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
@@ -18,13 +19,17 @@ from app.schemas.billing import (
     InitializeBillingResponse,
     PlanPricingItem,
     PlanPricingResponse,
+    StartTrialRequest,
+    StartTrialResponse,
     VerifyTransactionResponse,
 )
 from app.services.billing import (
     apply_verified_transaction,
     billing_history_payload,
     billing_status_payload,
+    find_user_for_paystack_event,
     handle_paystack_event,
+    log_billing_event,
     mark_subscription_cancelled,
 )
 from app.services.premium_access import get_premium_status
@@ -33,6 +38,13 @@ from app.services.product_purchases import process_product_purchase_webhook
 from app.services.paystack import disable_paystack_subscription, initialize_transaction, verify_paystack_signature
 from app.services.paystack import verify_transaction as verify_paystack_transaction
 from app.services.plan_catalog import plan_pricing_payload
+from app.services.trial_billing import (
+    assert_can_start_trial,
+    cancel_trial_immediately,
+    initialize_user_trial,
+    is_trial_tokenization_charge,
+    process_trial_tokenization_charge,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +106,45 @@ async def initialize_billing(
     )
 
 
+@router.post("/start-trial", response_model=StartTrialResponse)
+async def start_trial(
+    body: StartTrialRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not settings.paystack_configured:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Billing is not configured")
+
+    try:
+        assert_can_start_trial(db, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    callback_url = f"{settings.frontend_url.rstrip('/')}/billing/result"
+
+    try:
+        data = await initialize_user_trial(
+            db,
+            user,
+            plan_slug=body.plan,
+            callback_url=callback_url,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+
+    db.commit()
+
+    return StartTrialResponse(
+        access_code=data["access_code"],
+        reference=data["reference"],
+        authorization_url=data["authorization_url"],
+        plan=data["plan"],
+        public_key=settings.paystack_public_key,
+        tokenization_amount_ngn=data["tokenization_amount_ngn"],
+        tokenization_amount_kobo=data["tokenization_amount_kobo"],
+    )
+
+
 @router.get("/verify", response_model=VerifyTransactionResponse)
 async def verify_billing_transaction(
     reference: str = Query(..., min_length=3),
@@ -117,7 +168,10 @@ async def verify_billing_transaction(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This transaction does not belong to you")
 
     if result["status"] == "success":
-        apply_verified_transaction(db, user, paystack_data)
+        if is_trial_tokenization_charge(paystack_data):
+            await process_trial_tokenization_charge(db, user, paystack_data, reference=reference)
+        else:
+            apply_verified_transaction(db, user, paystack_data)
         db.commit()
     elif result["status"] in {"failed", "abandoned"}:
         reason = result.get("gateway_response") or (
@@ -164,6 +218,12 @@ async def cancel_billing(
             detail="No cancellable subscription found on your account.",
         )
 
+    is_active_trial = bool(
+        user.is_trial
+        and user.trial_ends_at
+        and user.trial_ends_at > datetime.now(timezone.utc)
+    )
+
     try:
         await disable_paystack_subscription(
             subscription_code=user.paystack_subscription_code,
@@ -171,6 +231,22 @@ async def cancel_billing(
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+
+    if is_active_trial:
+        cancel_trial_immediately(db, user)
+        if not has_recent_notification(db, user_id=user.id, notification_type="subscription_cancelled", within_hours=2):
+            notify_user(
+                db,
+                user.id,
+                "subscription_cancelled",
+                {"current_period_end": user.premium_period_end},
+            )
+        db.commit()
+        return CancelBillingResponse(
+            subscription_status="cancelled",
+            premium_until=None,
+            message="Trial cancelled — you won't be charged and Pro access has ended.",
+        )
 
     mark_subscription_cancelled(db, user)
     if not has_recent_notification(db, user_id=user.id, notification_type="subscription_cancelled", within_hours=2):
@@ -212,8 +288,24 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
         reference = data.get("reference") or data.get("transaction_reference")
         metadata = data.get("metadata") or {}
 
-        if event_type == "charge.success" and metadata.get("product_id"):
+        if event_type == "charge.success" and (
+            metadata.get("product_id") or metadata.get("purchase_type") == "product"
+        ):
             await process_product_purchase_webhook(db, reference)
+            db.commit()
+            return {"status": "ok"}
+
+        if event_type == "charge.success" and metadata.get("purpose") == "trial_tokenization":
+            user = find_user_for_paystack_event(db, data)
+            log_billing_event(
+                db,
+                event_type=event_type,
+                payload=event,
+                user_id=user.id if user else None,
+                paystack_reference=reference,
+            )
+            if user:
+                await process_trial_tokenization_charge(db, user, data, reference=reference)
             db.commit()
             return {"status": "ok"}
 

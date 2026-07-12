@@ -51,6 +51,9 @@ def render_notification_message(notification_type: NotificationType, context: di
         "access_expiring": f"Your Pro access ends in 3 days. Renew at {upgrade_link}.",
         "access_expired": "Your Pro access has ended. You're now on the Free plan.",
         "resubscribed": "Welcome back to Pro!",
+        "trial_ending": (
+            f"Your free trial ends in 2 days — you'll be charged {amount} on {period_end} unless you cancel."
+        ),
         "product_sale": f"You made a sale! {context.get('product_title', 'Product')} — {_format_ngn(context.get('amount'))}.",
         "good_morning": (
             f"Good morning — your page had {context.get('clicks', 0)} clicks "
@@ -92,6 +95,7 @@ def render_notification_email(
         "access_expiring": f"Pro access ending soon — {SITE_NAME}",
         "access_expired": f"Pro access ended — {SITE_NAME}",
         "resubscribed": f"Welcome back to Pro — {SITE_NAME}",
+        "trial_ending": f"Free trial ending soon — {SITE_NAME}",
         "product_sale": f"You made a sale! — {SITE_NAME}",
         "good_morning": f"Good morning — your page stats — {SITE_NAME}",
         "good_evening": f"Good evening — your page stats — {SITE_NAME}",
@@ -135,6 +139,11 @@ def render_notification_email(
         "resubscribed": (
             f"<p>Welcome back to Pro!</p>"
             f'<p><a href="{_link("/dashboard")}">Open dashboard</a></p>'
+        ),
+        "trial_ending": (
+            f"<p>Your free trial ends in 2 days.</p>"
+            f"<p>You'll be charged <strong>{amount}</strong> on <strong>{period_end}</strong> unless you cancel.</p>"
+            f'<p><a href="{settings_link}">Manage billing</a></p>'
         ),
         "product_sale": (
             f"<p>You made a sale!</p>"

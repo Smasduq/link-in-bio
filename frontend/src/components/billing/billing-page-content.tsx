@@ -144,6 +144,26 @@ export function BillingPageContent() {
               </>
             ) : null}
 
+            {viewState === "trial_active" ? (
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Free trial — ends {formattedPeriodEnd}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  First charge of {formatNgn(renewalAmount ?? monthlyTotal, 2)} on that date unless you cancel.
+                </p>
+                {billing?.can_cancel ? (
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                    onClick={() => setCancelModalOpen(true)}
+                  >
+                    Cancel now to avoid being charged
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
             {viewState === "active_auto" ? (
               <div className="space-y-1">
                 <p className="text-sm font-medium text-foreground">
@@ -249,6 +269,8 @@ export function BillingPageContent() {
         <CancelSubscriptionModal
           open={cancelModalOpen}
           periodEnd={periodEnd}
+          trialMode={viewState === "trial_active"}
+          chargeAmount={renewalAmount}
           onClose={() => setCancelModalOpen(false)}
           onSuccess={handleCancelSuccess}
         />
