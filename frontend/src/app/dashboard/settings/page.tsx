@@ -75,7 +75,7 @@ export default function SettingsPage() {
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Pro from {formatNgn(billing?.monthly_amount_ngn ?? 2500)}/mo
+                  Pro from {formatNgn(billing?.monthly_base_amount_ngn ?? 500)}/mo
                 </p>
               )}
             </div>

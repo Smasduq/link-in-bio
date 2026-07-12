@@ -7,9 +7,10 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError
 
 from app.config import SITE_NAME, settings
-from app.database import ensure_db
+from app.database import ensure_db, SessionLocal
 from app.routers import analytics, auth, billing, links, profile, public
 from app.services.geoip import close_geoip, init_geoip, resolve_geolite2_db_path
+from app.services.plan_catalog import ensure_billing_plans
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,6 +25,12 @@ async def lifespan(_app: FastAPI):
     try:
         ensure_db()
         logger.info("Database ready")
+        db = SessionLocal()
+        try:
+            await ensure_billing_plans(db)
+            logger.info("Billing plans synced")
+        finally:
+            db.close()
     except Exception:
         logger.exception("Database init failed on startup")
 

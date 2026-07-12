@@ -36,8 +36,14 @@ class Settings(BaseSettings):
     # Paystack billing
     paystack_secret_key: str = ""
     paystack_public_key: str = ""
-    paystack_monthly_amount_ngn: int = 2500
-    paystack_yearly_amount_ngn: int = 24000
+    paystack_monthly_base_amount_ngn: float = 500
+    paystack_yearly_discount_percent: float = 15.0
+
+    @property
+    def paystack_yearly_base_amount_ngn(self) -> float:
+        """Yearly plan = 12× monthly minus the configured discount (default 15%)."""
+        discount = self.paystack_yearly_discount_percent / 100
+        return round(self.paystack_monthly_base_amount_ngn * 12 * (1 - discount), 2)
 
     @property
     def paystack_configured(self) -> bool:

@@ -10,6 +10,7 @@ import { EmailDeliveryHint } from "@/components/auth/email-delivery-hint";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { buildSignUpUrl, consumeAuthRedirect, stashRedirectFromSearchParams } from "@/lib/auth-redirect";
 import { SITE_NAME } from "@/lib/site";
 
 function SignInForm() {
@@ -27,6 +28,10 @@ function SignInForm() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    stashRedirectFromSearchParams(searchParams);
+  }, [searchParams]);
+
+  useEffect(() => {
     if (searchParams.get("reason") === "session-expired") {
       setError("Your session expired. Please sign in again.");
     }
@@ -34,9 +39,9 @@ function SignInForm() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/dashboard");
+      router.replace(consumeAuthRedirect(searchParams));
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, searchParams]);
 
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,7 +148,13 @@ function SignInForm() {
         <Button type="submit" className="w-full" loading={loading}>Continue</Button>
       </form>
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        New here? <Link href="/sign-up" className="font-semibold text-primary hover:underline">Create an account</Link>
+        New here?{" "}
+        <Link
+          href={buildSignUpUrl({ redirect: searchParams.get("redirect") ?? undefined })}
+          className="font-semibold text-primary hover:underline"
+        >
+          Create an account
+        </Link>
       </p>
     </AuthShell>
   );

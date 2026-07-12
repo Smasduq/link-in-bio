@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.billing_event import BillingEvent
 from app.models.user import User
-from app.services.paystack import plan_amount_ngn
+from app.services.plan_catalog import plan_pricing_payload
 
 logger = logging.getLogger(__name__)
 
@@ -179,14 +179,18 @@ def handle_paystack_event(db: Session, event: dict[str, Any]) -> None:
         logger.info("Premium subscription created for user %s", user.id)
 
 
-def billing_status_payload(user: User) -> dict[str, Any]:
+def billing_status_payload(user: User, db: Session) -> dict[str, Any]:
     status = get_current_user_premium_status(user)
-    plan = status["plan"]
+    plans = {item["slug"]: item for item in plan_pricing_payload(db)}
+    monthly = plans.get("monthly", {})
+    yearly = plans.get("yearly", {})
     return {
-        "plan": plan,
+        "plan": status["plan"],
         "is_premium": status["is_premium"],
         "premium_until": status["premium_until"],
-        "monthly_amount_ngn": plan_amount_ngn("monthly"),
-        "yearly_amount_ngn": plan_amount_ngn("yearly"),
-        "paystack_public_key": None,  # filled by router when configured
+        "monthly_base_amount_ngn": monthly.get("base_amount"),
+        "yearly_base_amount_ngn": yearly.get("base_amount"),
+        "yearly_savings_percent": yearly.get("yearly_savings_percent"),
+        "yearly_savings_amount": yearly.get("yearly_savings_amount"),
+        "paystack_public_key": None,
     }

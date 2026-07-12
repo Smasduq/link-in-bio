@@ -8,12 +8,29 @@ import logging
 from typing import Any
 
 import httpx
+from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.models.billing_plan import BillingPlanRecord
 
 logger = logging.getLogger(__name__)
 
 PAYSTACK_BASE_URL = "https://api.paystack.co"
+PAYSTACK_NETWORK_ERROR = "Could not reach Paystack. Check your internet connection and try again."
+
+
+async def _paystack_request(method: str, path: str, *, json: dict[str, Any] | None = None) -> httpx.Response:
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            return await client.request(
+                method,
+                f"{PAYSTACK_BASE_URL}{path}",
+                headers=_paystack_headers(),
+                json=json,
+            )
+    except httpx.RequestError as exc:
+        logger.error("Paystack network error for %s %s: %s", method, path, exc)
+        raise RuntimeError(PAYSTACK_NETWORK_ERROR) from exc
 
 
 def verify_paystack_signature(payload: bytes, signature: str | None, secret_key: str | None = None) -> bool:
@@ -45,47 +62,79 @@ def _paystack_headers() -> dict[str, str]:
     }
 
 
-def plan_amount_kobo(plan: str) -> int:
-    if plan == "yearly":
-        return settings.paystack_yearly_amount_ngn * 100
-    return settings.paystack_monthly_amount_ngn * 100
+async def create_paystack_plan(*, name: str, interval: str, amount_kobo: int) -> str:
+    """Create a Paystack plan using the fee-inclusive amount in kobo."""
+    payload = {
+        "name": name,
+        "interval": interval,
+        "amount": amount_kobo,
+        "currency": "NGN",
+    }
+
+    response = await _paystack_request("POST", "/plan", json=payload)
+
+    data = response.json()
+    if response.status_code >= 400 or not data.get("status"):
+        message = data.get("message", "Paystack plan creation failed")
+        logger.error("Paystack plan error: %s — %s", response.status_code, message)
+        raise RuntimeError(message)
+
+    plan_code = data["data"]["plan_code"]
+    return plan_code
 
 
-def plan_amount_ngn(plan: str) -> int:
-    if plan == "yearly":
-        return settings.paystack_yearly_amount_ngn
-    return settings.paystack_monthly_amount_ngn
+async def get_paystack_plan_amount_kobo(plan_code: str) -> int | None:
+    """Return the Paystack plan amount in kobo, or None if the plan cannot be fetched."""
+    try:
+        response = await _paystack_request("GET", f"/plan/{plan_code}")
+    except RuntimeError:
+        return None
+
+    data = response.json()
+    if response.status_code >= 400 or not data.get("status"):
+        message = data.get("message", "Paystack plan fetch failed")
+        logger.error("Paystack plan fetch error: %s — %s", response.status_code, message)
+        return None
+
+    amount = data.get("data", {}).get("amount")
+    return int(amount) if amount is not None else None
 
 
 async def initialize_transaction(
     *,
+    db: Session,
     email: str,
-    plan: str,
+    plan_slug: str,
     user_id: str,
     callback_url: str,
-) -> dict[str, Any]:
-    amount = plan_amount_kobo(plan)
-    payload = {
+) -> tuple[dict[str, Any], BillingPlanRecord]:
+    from app.services.plan_catalog import get_plan_by_slug
+
+    plan_record = get_plan_by_slug(db, plan_slug)
+    if plan_record is None:
+        raise RuntimeError(f"Unknown billing plan: {plan_slug}")
+
+    payload: dict[str, Any] = {
         "email": email,
-        "amount": amount,
+        "amount": plan_record.total_charge_kobo,
         "currency": "NGN",
         "callback_url": callback_url,
         "metadata": {
             "user_id": user_id,
-            "plan": plan,
+            "plan": plan_slug,
+            "base_amount": plan_record.base_amount,
+            "total_charge": plan_record.total_charge,
             "custom_fields": [
-                {"display_name": "Plan", "variable_name": "plan", "value": plan},
+                {"display_name": "Plan", "variable_name": "plan", "value": plan_slug},
                 {"display_name": "User ID", "variable_name": "user_id", "value": user_id},
             ],
         },
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            f"{PAYSTACK_BASE_URL}/transaction/initialize",
-            headers=_paystack_headers(),
-            json=payload,
-        )
+    if plan_record.paystack_plan_code:
+        payload["plan"] = plan_record.paystack_plan_code
+
+    response = await _paystack_request("POST", "/transaction/initialize", json=payload)
 
     data = response.json()
     if response.status_code >= 400 or not data.get("status"):
@@ -93,4 +142,4 @@ async def initialize_transaction(
         logger.error("Paystack initialize error: %s — %s", response.status_code, message)
         raise RuntimeError(message)
 
-    return data["data"]
+    return data["data"], plan_record

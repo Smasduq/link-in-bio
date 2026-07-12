@@ -19,6 +19,8 @@ import {
   type BillingPlan,
   type BillingStatus,
   type InitializeBillingResponse,
+  type PlanPricingItem,
+  type PlanPricingResponse,
   formatNgn,
   PLAN_FEATURES,
 } from "@/lib/plans";
@@ -30,15 +32,16 @@ export default function UpgradePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [billing, setBilling] = useState<BillingStatus | null>(null);
+  const [planPricing, setPlanPricing] = useState<PlanPricingItem[]>([]);
   const [plan, setPlan] = useState<BillingPlan>("monthly");
   const [paymentState, setPaymentState] = useState<PaymentState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace("/sign-in?next=/upgrade");
-    }
-  }, [authLoading, user, router]);
+    apiFetch<PlanPricingResponse>("/api/billing/plan-pricing")
+      .then((data) => setPlanPricing(data.plans))
+      .catch(() => setErrorMessage("Could not load plan pricing"));
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -64,7 +67,7 @@ export default function UpgradePage() {
       popup.newTransaction({
         key: init.public_key,
         email: user.email,
-        amount: init.amount_ngn * 100,
+        amount: init.pricing.total_charge_kobo,
         reference: init.reference,
         access_code: init.access_code,
         onSuccess: () => {
@@ -81,9 +84,10 @@ export default function UpgradePage() {
     }
   }, [plan, user]);
 
-  const monthlyPrice = billing?.monthly_amount_ngn ?? 2500;
-  const yearlyPrice = billing?.yearly_amount_ngn ?? 24000;
-  const selectedPrice = plan === "monthly" ? monthlyPrice : yearlyPrice;
+  const selectedPlan = planPricing.find((item) => item.slug === plan);
+  const yearlyPlan = planPricing.find((item) => item.slug === "yearly");
+  const yearlySavingsPercent = yearlyPlan?.yearly_savings_percent ?? billing?.yearly_savings_percent ?? 15;
+  const yearlySavingsAmount = yearlyPlan?.yearly_savings_amount ?? billing?.yearly_savings_amount ?? null;
   const isPro = billing?.is_premium ?? false;
 
   if (authLoading || !user) {
@@ -147,7 +151,7 @@ export default function UpgradePage() {
                   )}
                 >
                   Yearly
-                  <span className="ml-1.5 text-xs opacity-80">Save more</span>
+                  <span className="ml-1.5 text-xs opacity-80">Save {yearlySavingsPercent}%</span>
                 </button>
               </div>
             </div>
@@ -163,8 +167,16 @@ export default function UpgradePage() {
               />
               <PlanCard
                 title="Pro"
-                price={formatNgn(selectedPrice)}
-                subtitle={plan === "monthly" ? "per month" : "per year"}
+                price={selectedPlan ? formatNgn(selectedPlan.total_charge, 2) : "—"}
+                subtitle={
+                  selectedPlan
+                    ? plan === "yearly" && yearlySavingsAmount
+                      ? `${formatNgn(selectedPlan.base_amount, 0)}/year · save ${formatNgn(yearlySavingsAmount, 0)} vs monthly`
+                      : `${formatNgn(selectedPlan.base_amount, 0)} plan · ${plan === "monthly" ? "per month" : "per year"}`
+                    : plan === "monthly"
+                      ? "per month"
+                      : "per year"
+                }
                 highlight
                 cta={paymentState === "loading" ? "Opening Paystack…" : "Upgrade Now"}
                 loading={paymentState === "loading"}
@@ -172,6 +184,30 @@ export default function UpgradePage() {
                 features={PLAN_FEATURES.map((f) => ({ label: f.label, included: true }))}
               />
             </div>
+
+            {selectedPlan ? (
+              <Card className="mx-auto mt-6 max-w-md border-dashed">
+                <CardContent className="space-y-2 p-4 text-sm">
+                  <p className="font-semibold text-foreground">Fee breakdown (computed by server)</p>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Plan price</span>
+                    <span>{formatNgn(selectedPlan.base_amount, 2)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Paystack fee (1.5%)</span>
+                    <span>{formatNgn(selectedPlan.service_fee, 2)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>VAT on fee (7.5%)</span>
+                    <span>{formatNgn(selectedPlan.vat_on_fee, 2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-2 font-semibold text-foreground">
+                    <span>You pay</span>
+                    <span>{formatNgn(selectedPlan.total_charge, 2)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
 
             {paymentState === "success" ? (
               <p className="mt-6 text-center text-sm font-medium text-emerald-600">

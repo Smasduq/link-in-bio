@@ -10,6 +10,7 @@ import {
   setAuthToken,
   syncAuthTokenStorage,
 } from "@/lib/auth-token";
+import { consumeAuthRedirect } from "@/lib/auth-redirect";
 
 type User = {
   id: string;
@@ -75,17 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser().finally(() => setLoading(false));
   }, [refreshUser]);
 
-  const finishAuth = (data: { access_token: string; user: User }) => {
-    setAuthToken(data.access_token);
-    setUser(data.user);
-
-    const params = new URLSearchParams(window.location.search);
-    const callbackUrl = params.get("callbackUrl");
-    const destination =
-      callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
-        ? callbackUrl
-        : "/dashboard";
-
+  const finishAuth = () => {
+    const destination = consumeAuthRedirect(new URLSearchParams(window.location.search));
     router.push(destination);
     router.refresh();
   };
@@ -97,7 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (!data.requires_otp && data.access_token && data.user) {
-      finishAuth({ access_token: data.access_token, user: data.user });
+      setAuthToken(data.access_token);
+      setUser(data.user);
+      finishAuth();
     }
 
     return data;
@@ -108,7 +102,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: "POST",
       body: JSON.stringify({ challenge_id: challengeId, otp }),
     });
-    finishAuth(data);
+    setAuthToken(data.access_token);
+    setUser(data.user);
+    finishAuth();
   };
 
   const requestRegisterOtp = async (email: string, password: string, username: string) => {
@@ -123,7 +119,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: "POST",
       body: JSON.stringify({ challenge_id: challengeId, otp }),
     });
-    finishAuth(data);
+    setAuthToken(data.access_token);
+    setUser(data.user);
+    finishAuth();
   };
 
   const resendOtp = async (challengeId: string) => {

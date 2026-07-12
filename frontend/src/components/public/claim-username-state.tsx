@@ -4,6 +4,7 @@ import { Logo } from "@/components/brand/logo";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { SITE_NAME } from "@/lib/site";
+import { buildSignInUrl, buildSignUpUrl } from "@/lib/auth-redirect";
 
 type ClaimUsernameStateProps = {
   username: string;
@@ -12,7 +13,8 @@ type ClaimUsernameStateProps = {
 
 export function ClaimUsernameState({ username, className }: ClaimUsernameStateProps) {
   const handle = username.toLowerCase().replace(/^@/, "").trim();
-  const signupHref = `/sign-up?username=${encodeURIComponent(handle)}`;
+  const signupHref = buildSignUpUrl({ username: handle, redirect: "/dashboard" });
+  const signInHref = buildSignInUrl("/dashboard");
 
   return (
     <div className={cn("relative flex min-h-screen items-center justify-center bg-secondary px-4 py-12", className)}>
@@ -50,7 +52,7 @@ export function ClaimUsernameState({ username, className }: ClaimUsernameStatePr
 
           <p className="mt-4 text-xs text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/sign-in" className="font-semibold text-emerald-600 hover:underline dark:text-emerald-400">
+            <Link href={signInHref} className="font-semibold text-emerald-600 hover:underline dark:text-emerald-400">
               Sign in
             </Link>
           </p>

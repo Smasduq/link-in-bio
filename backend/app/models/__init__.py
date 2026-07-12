@@ -1,5 +1,6 @@
 from app.models.analytics import LinkClick, PageView
 from app.models.billing_event import BillingEvent
+from app.models.billing_plan import BillingPlanRecord
 from app.models.link import Link
 from app.models.otp_challenge import OtpChallenge
 from app.models.password_reset import PasswordResetToken
@@ -15,4 +16,5 @@ __all__ = [
     "PasswordResetToken",
     "OtpChallenge",
     "BillingEvent",
+    "BillingPlanRecord",
 ]

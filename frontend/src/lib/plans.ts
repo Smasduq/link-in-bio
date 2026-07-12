@@ -25,20 +25,44 @@ export const FREE_THEME_PRESET_IDS = new Set<string>();
 export const PRO_ONLY_BUTTON_STYLES = new Set(["glass"]);
 export const PRO_ONLY_BACKGROUND_TYPES = new Set(["gradient", "pattern", "image"]);
 
-export function formatNgn(amount: number): string {
+export function formatNgn(amount: number, fractionDigits = 0): string {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(amount);
 }
+
+export type FeeBreakdown = {
+  base_amount: number;
+  service_fee: number;
+  vat_on_fee: number;
+  total_charge: number;
+  total_charge_kobo: number;
+};
+
+export type PlanPricingItem = FeeBreakdown & {
+  slug: BillingPlan;
+  name: string;
+  interval: string;
+  paystack_plan_code: string | null;
+  yearly_savings_percent?: number | null;
+  yearly_savings_amount?: number | null;
+};
+
+export type PlanPricingResponse = {
+  plans: PlanPricingItem[];
+};
 
 export type BillingStatus = {
   plan: string;
   is_premium: boolean;
   premium_until: string | null;
-  monthly_amount_ngn: number;
-  yearly_amount_ngn: number;
+  monthly_base_amount_ngn: number | null;
+  yearly_base_amount_ngn: number | null;
+  yearly_savings_percent: number | null;
+  yearly_savings_amount: number | null;
   paystack_public_key: string | null;
 };
 
@@ -46,7 +70,7 @@ export type InitializeBillingResponse = {
   access_code: string;
   reference: string;
   authorization_url: string;
-  amount_ngn: number;
   plan: BillingPlan;
   public_key: string;
+  pricing: FeeBreakdown;
 };
