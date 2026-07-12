@@ -47,7 +47,8 @@ export function NotificationBell() {
     window.addEventListener("scroll", updateDesktopCoords, true);
 
     const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const lockScroll = window.innerWidth < 768;
+    if (lockScroll) document.body.style.overflow = "hidden";
 
     const closeOnOutside = (event: PointerEvent) => {
       const target = event.target as Node;
@@ -58,7 +59,7 @@ export function NotificationBell() {
     document.addEventListener("pointerdown", closeOnOutside);
 
     return () => {
-      document.body.style.overflow = previous;
+      if (lockScroll) document.body.style.overflow = previous;
       window.removeEventListener("resize", updateDesktopCoords);
       window.removeEventListener("scroll", updateDesktopCoords, true);
       document.removeEventListener("pointerdown", closeOnOutside);
@@ -83,7 +84,7 @@ export function NotificationBell() {
             <button
               type="button"
               aria-label="Close notifications"
-              className="fixed inset-0 z-[70] bg-black/30 md:bg-transparent"
+              className="fixed inset-0 z-[70] bg-black/30 md:hidden"
               onClick={() => setOpen(false)}
             />
 
@@ -91,8 +92,8 @@ export function NotificationBell() {
               ref={panelRef}
               className={cn(
                 "fixed z-[80] flex flex-col overflow-hidden border border-border bg-card shadow-lg",
-                "inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] max-h-[min(55vh,18rem)] rounded-xl",
-                "md:inset-x-auto md:bottom-auto md:w-72 md:max-h-80 lg:w-80"
+                "inset-x-3 top-[calc(3.5rem+0.5rem)] max-h-[min(55vh,18rem)] rounded-xl",
+                "md:inset-x-auto md:top-auto md:w-72 md:max-h-80 lg:w-80"
               )}
               style={
                 desktopCoords
