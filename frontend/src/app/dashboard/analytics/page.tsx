@@ -50,7 +50,7 @@ export default function AnalyticsPage() {
 
       {activeTab === "overview" && (
         <div className="space-y-6 pt-2">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardContent className="p-6">
                 <Eye className="mb-3 h-5 w-5 text-emerald-600" />

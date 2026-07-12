@@ -36,8 +36,11 @@ function NavLink({
     return (
       <Link
         href={item.path}
+        aria-label={item.name}
         className={cn(
-          "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+          "group relative flex items-center rounded-xl text-sm font-medium transition-all duration-200",
+          "md:justify-center md:px-2 md:py-2.5",
+          "xl:gap-3 xl:justify-start xl:px-3",
           active
             ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
             : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -47,7 +50,13 @@ function NavLink({
           <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-emerald-600 dark:bg-emerald-400" />
         )}
         <item.icon className={cn("h-5 w-5 shrink-0", active && "text-emerald-600 dark:text-emerald-400")} />
-        {item.name}
+        <span className="hidden xl:inline">{item.name}</span>
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 hidden -translate-y-1/2 whitespace-nowrap rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 md:block xl:hidden"
+        >
+          {item.name}
+        </span>
       </Link>
     );
   }
@@ -155,9 +164,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-secondary/40">
-      {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card md:flex">
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3 pt-5" aria-label="Dashboard">
+      {/* Desktop / tablet sidebar — icon-only md→lg, full labels at xl+ */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[72px] flex-col overflow-visible border-r border-border bg-card md:flex xl:w-60">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-2 pt-5 xl:p-3" aria-label="Dashboard">
           {dashboardNav.map((item) => (
             <NavLink
               key={item.path}
@@ -169,7 +178,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
       </aside>
 
-      <div className="flex min-h-screen flex-col md:pl-60">
+      <div className="flex min-h-screen flex-col md:pl-[72px] xl:pl-60">
         {/* Header */}
         <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur-xl md:h-16 md:px-6">
           {/* Mobile left */}
@@ -211,13 +220,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={publicUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="View my page"
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-xl text-sm font-medium text-emerald-700 transition hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300",
-                  "hidden md:inline-flex md:border md:border-border md:bg-card md:px-3 md:py-2 md:shadow-sm md:hover:border-emerald-400/50"
+                  "hidden items-center justify-center rounded-xl text-emerald-700 transition hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300",
+                  "md:inline-flex md:h-10 md:w-10 md:border md:border-border md:bg-card md:shadow-sm md:hover:border-emerald-400/50",
+                  "xl:h-auto xl:w-auto xl:gap-1.5 xl:px-3 xl:py-2 xl:text-sm xl:font-medium"
                 )}
               >
-                <ExternalLink className="h-4 w-4" />
-                View my page
+                <ExternalLink className="h-4 w-4 shrink-0" />
+                <span className="hidden xl:inline">View my page</span>
               </a>
             )}
 
@@ -250,7 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             pathname === "/dashboard" && "bg-[#F5F7FA] dark:bg-[#0f1419]"
           )}
         >
-          <div className="mx-auto w-full max-w-[1100px] animate-fade-in">{children}</div>
+          <div className="mx-auto w-full animate-fade-in xl:max-w-[1100px]">{children}</div>
         </main>
       </div>
 

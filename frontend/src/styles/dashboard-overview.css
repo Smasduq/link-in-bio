@@ -333,7 +333,7 @@
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .lb-grid--stats {
     grid-template-columns: repeat(4, 1fr);
   }
@@ -343,7 +343,7 @@
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .lb-grid--2 {
     grid-template-columns: 1.4fr 1fr;
   }
@@ -353,7 +353,7 @@
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .lb-grid--3 {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -785,7 +785,7 @@
   gap: 1rem;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .lb-insights {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -990,17 +990,11 @@
   display: none;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .lb-actions-scroll {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    overflow: visible;
-  }
-}
-
-@media (min-width: 1024px) {
-  .lb-actions-scroll {
     grid-template-columns: repeat(6, 1fr);
+    overflow: visible;
   }
 }
 
