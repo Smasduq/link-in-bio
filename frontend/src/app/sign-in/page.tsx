@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import OtpInput from "@/components/auth/OtpInput";
+import { EmailDeliveryHint } from "@/components/auth/email-delivery-hint";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +93,7 @@ function SignInForm() {
     return (
       <AuthShell title="Check your email" subtitle={`We sent a 6-digit code to ${maskedEmail}`}>
         {error && <p className="mb-4 text-center text-sm text-destructive">{error}</p>}
+        <EmailDeliveryHint className="mb-4 text-center text-xs text-muted-foreground" />
         <form onSubmit={handleVerifyOtp} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-medium">Verification code</label>
