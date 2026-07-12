@@ -6,6 +6,7 @@ from fastapi import HTTPException
 
 from app.models.user import User
 from app.services.premium_access import (
+    assert_can_create_product,
     sanitize_theme_for_public,
     theme_uses_pro_features,
     validate_theme_settings,
@@ -60,3 +61,15 @@ def test_sanitize_theme_for_public_strips_pro_theme():
 def test_sanitize_theme_keeps_pro_theme_for_premium_user():
     theme = {"buttonStyle": "glass", "backgroundType": "gradient", "presetId": "midnight-glass"}
     assert sanitize_theme_for_public(theme, is_premium=True) == theme
+
+
+def test_assert_can_create_product_blocks_free_at_limit():
+    user = _free_user()
+    with pytest.raises(HTTPException) as exc:
+        assert_can_create_product(user, MagicMock(), "profile-1", current_count=1)
+    assert exc.value.status_code == 403
+
+
+def test_assert_can_create_product_allows_free_under_limit():
+    user = _free_user()
+    assert_can_create_product(user, MagicMock(), "profile-1", current_count=0)

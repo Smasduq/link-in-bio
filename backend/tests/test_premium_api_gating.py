@@ -98,6 +98,22 @@ def test_free_user_cannot_set_featured_link(free_client):
     assert response.status_code == 403
 
 
+def test_free_user_cannot_create_second_product(free_client):
+    client, _, mock_db = free_client
+
+    count_query = MagicMock()
+    count_query.filter.return_value.scalar.return_value = 1
+    mock_db.query.return_value = count_query
+
+    response = client.post(
+        "/api/products",
+        json={"title": "Second product", "description": "Test", "price": 1000},
+        headers={"Authorization": "Bearer test-token"},
+    )
+    assert response.status_code == 403
+    assert "1 product" in response.json()["detail"]
+
+
 def test_free_user_link_insights_requires_premium(free_client):
     client, _, _ = free_client
     response = client.get(

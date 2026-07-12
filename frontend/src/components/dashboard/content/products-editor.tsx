@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, Package, Plus, Trash2, Upload } from "lucide-react";
+import { Crown, Eye, EyeOff, Package, Plus, Trash2, Upload } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { apiUploadFile } from "@/lib/api-upload";
 import { formatNgn, type Product } from "@/lib/products";
+import { canAddProduct, isPremiumFromProfile } from "@/lib/premium-features";
+import type { Profile } from "@/types/database";
+import { ProUpgradeCta } from "@/components/billing/pro-upgrade-cta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
@@ -13,6 +16,7 @@ import { PageLoader } from "@/components/ui/spinner";
 
 export function ProductsEditor() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [isPremium, setIsPremium] = useState(false);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -20,16 +24,21 @@ export function ProductsEditor() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [deliverableFile, setDeliverableFile] = useState<File | null>(null);
 
+  const allowNewProduct = canAddProduct(isPremium, products.length);
+
   const loadProducts = async () => {
     setProducts(await apiFetch<Product[]>("/api/products"));
   };
 
   useEffect(() => {
-    loadProducts().finally(() => setLoading(false));
+    Promise.all([loadProducts(), apiFetch<Profile>("/api/profile")])
+      .then(([, profile]) => setIsPremium(isPremiumFromProfile(profile)))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!allowNewProduct) return;
     setSaving(true);
     try {
       const created = await apiFetch<Product>("/api/products", {
@@ -81,11 +90,26 @@ export function ProductsEditor() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setModalOpen(true)}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {!allowNewProduct ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Crown className="h-4 w-4 text-amber-600" />
+            Free plan includes 1 product. Upgrade for unlimited.
+          </p>
+        ) : (
+          <span />
+        )}
+        <Button onClick={() => setModalOpen(true)} disabled={!allowNewProduct}>
           <Plus className="h-4 w-4" /> New product
         </Button>
       </div>
+
+      {!allowNewProduct ? (
+        <ProUpgradeCta
+          title="Need more products?"
+          description="Upgrade to Pro to sell unlimited digital products on your page."
+        />
+      ) : null}
 
       {products.length === 0 ? (
         <Card className="border-dashed">
@@ -93,6 +117,11 @@ export function ProductsEditor() {
             <Package className="mx-auto h-10 w-10 text-emerald-600" />
             <p className="mt-4 font-semibold">No products yet</p>
             <p className="mt-2 text-sm text-muted-foreground">Upload a cover image and deliverable file to start selling.</p>
+            {allowNewProduct ? (
+              <Button className="mt-4" onClick={() => setModalOpen(true)}>
+                <Plus className="h-4 w-4" /> Add your first product
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       ) : (
@@ -147,7 +176,7 @@ export function ProductsEditor() {
             <label className="text-sm font-medium">Deliverable file (PDF, ZIP, etc.)</label>
             <input type="file" onChange={(e) => setDeliverableFile(e.target.files?.[0] || null)} required />
           </div>
-          <Button type="submit" className="w-full" loading={saving}>
+          <Button type="submit" className="w-full" loading={saving} disabled={!allowNewProduct}>
             <Upload className="h-4 w-4" /> Create product
           </Button>
         </form>

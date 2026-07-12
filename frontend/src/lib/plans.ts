@@ -13,7 +13,7 @@ export type PlanFeature = {
 export const PLAN_FEATURES: PlanFeature[] = [
   { label: "Unlimited links", free: true, pro: true },
   { label: "Basic solid theme", free: true, pro: true },
-  { label: "Sell digital products", free: true, pro: true },
+  { label: "Sell digital products", free: "1 product", pro: "Unlimited" },
   { label: "6 premium theme presets", free: false, pro: true },
   { label: "Glass & signature effects", free: false, pro: true },
   { label: "Gradient, pattern & image backgrounds", free: false, pro: true },

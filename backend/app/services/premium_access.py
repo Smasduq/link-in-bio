@@ -18,6 +18,8 @@ PRO_BUTTON_STYLES = frozenset({"glass", "rounded", "square"})
 
 FREE_FONTS = frozenset({"Inter", "DM Sans"})
 
+FREE_PRODUCT_LIMIT = 1
+
 PREMIUM_PRESET_IDS = frozenset(
     {
         "midnight-glass",
@@ -61,6 +63,27 @@ def require_premium(user: User, db: Session) -> None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Pro plan required for this feature",
+        )
+
+
+def assert_can_create_product(user: User, db: Session, profile_id: str, *, current_count: int | None = None) -> None:
+    if user_is_premium(user, db):
+        return
+
+    count = current_count
+    if count is None:
+        from sqlalchemy import func
+
+        from app.models.product import Product
+
+        count = (
+            db.query(func.count(Product.id)).filter(Product.profile_id == profile_id).scalar() or 0
+        )
+
+    if count >= FREE_PRODUCT_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Free plan allows only 1 product. Upgrade to Pro for unlimited products.",
         )
 
 
