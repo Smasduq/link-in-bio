@@ -14,7 +14,6 @@ from app.models.product import Product
 from app.models.product_purchase import ProductPurchase
 from app.models.profile import Profile
 from app.models.user import User
-from app.services.cloudinary_storage import generate_signed_private_download_url
 from app.services.email import send_email
 from app.services.email_templates import _button, transactional_email_html
 from app.services.fee_pricing import calculate_fee_inclusive_amount, total_charge_kobo
@@ -22,8 +21,6 @@ from app.services.notifications import has_recent_notification, notify_user
 from app.services.paystack import verify_transaction
 
 logger = logging.getLogger(__name__)
-
-EXCESSIVE_DOWNLOAD_THRESHOLD = 10
 
 
 def _utcnow() -> datetime:
@@ -180,7 +177,7 @@ async def fulfill_product_purchase(
 
     pricing = _product_pricing(product)
     token = secrets.token_urlsafe(32)
-    expires_at = _utcnow() + timedelta(days=settings.product_download_token_days)
+    expires_at = _utcnow() + timedelta(hours=settings.product_download_token_hours)
 
     purchase = ProductPurchase(
         product_id=product.id,
@@ -189,6 +186,7 @@ async def fulfill_product_purchase(
         amount_paid=float(pricing["total_charge"]),
         download_token=token,
         download_token_expires_at=expires_at,
+        max_downloads=3,
     )
     db.add(purchase)
     db.flush()
@@ -227,52 +225,17 @@ async def process_product_purchase_webhook(db: Session, reference: str | None) -
 def verify_download_token(db: Session, token: str) -> tuple[ProductPurchase, Product, User | None]:
     """
     Look up a download token and return the purchase, product, and creator user.
-    Raises HTTPException for invalid or expired tokens.
+    Raises HTTPException for invalid or expired tokens (generic message).
     """
-    purchase = (
-        db.query(ProductPurchase)
-        .options(joinedload(ProductPurchase.product).joinedload(Product.profile).joinedload(Profile.user))
-        .filter(ProductPurchase.download_token == token)
-        .first()
-    )
-    if purchase is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Download link not found.")
+    from app.services.download_verification import GENERIC_UNAVAILABLE_MESSAGE, _lookup_purchase, _token_expired
+
+    purchase = _lookup_purchase(db, token)
+    if purchase is None or _token_expired(purchase):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=GENERIC_UNAVAILABLE_MESSAGE)
 
     product = purchase.product
-    creator = product.profile.user if product.profile else None
-    expires_at = purchase.download_token_expires_at
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-
-    if _utcnow() > expires_at.astimezone(timezone.utc):
-        creator_email = creator.email if creator else settings.mail_from
-        raise HTTPException(
-            status_code=status.HTTP_410_GONE,
-            detail={
-                "message": "This download link has expired.",
-                "creator_email": creator_email,
-            },
-        )
-
+    creator = product.profile.user if product and product.profile else None
     return purchase, product, creator
-
-
-def issue_signed_download(db: Session, token: str) -> str:
-    """Validate token and return a short-lived signed Cloudinary URL for the private file."""
-    purchase, product, _creator = verify_download_token(db, token)
-    signed_url = generate_signed_private_download_url(product.file_public_id)
-
-    purchase.download_count += 1
-    if purchase.download_count > EXCESSIVE_DOWNLOAD_THRESHOLD:
-        purchase.download_flagged = True
-        logger.warning(
-            "Download token used excessively purchase=%s count=%s",
-            purchase.id,
-            purchase.download_count,
-        )
-
-    db.add(purchase)
-    return signed_url
 
 
 def purchase_verify_payload(purchase: ProductPurchase) -> dict:
@@ -293,8 +256,10 @@ def _send_buyer_download_email(buyer_email: str, product: Product, download_url:
         f"Your download is ready</h1>"
         f"<p style=\"margin: 0 0 8px; font-size: 16px; line-height: 1.6; color: #6b7280;\">"
         f"Thanks for your purchase of <strong>{product.title}</strong>.</p>"
+        f"<p style=\"margin: 0 0 8px; font-size: 16px; line-height: 1.6; color: #6b7280;\">"
+        f"Click below to download. You'll be asked to confirm the email you purchased with.</p>"
         f"<p style=\"margin: 0; font-size: 16px; line-height: 1.6; color: #6b7280;\">"
-        f"This link expires in {settings.product_download_token_days} days.</p>"
+        f"Link expires in {settings.product_download_token_hours} hours.</p>"
         f"{_button(download_url, 'Download your file →')}"
     )
     html_body = transactional_email_html(

@@ -39,7 +39,9 @@ class Settings(BaseSettings):
     billing_manual_renewal_reminder_days: int = 3
     trial_days: int = 30
     trial_tokenization_amount_ngn: float = 50.0
-    product_download_token_days: int = 7
+    product_download_token_hours: int = 24
+    product_download_verify_max_attempts: int = 5
+    product_download_verify_window_hours: int = 1
     product_max_file_bytes: int = 50 * 1024 * 1024
 
     # Web Push (generate: npx web-push generate-vapid-keys)

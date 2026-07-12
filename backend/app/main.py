@@ -69,6 +69,7 @@ app.include_router(billing.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(push.router, prefix="/api")
 app.include_router(products.router, prefix="/api")
+app.include_router(downloads.router, prefix="/api")
 app.include_router(sales.router, prefix="/api")
 app.include_router(subscribers.router, prefix="/api")
 

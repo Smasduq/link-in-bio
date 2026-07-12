@@ -284,6 +284,50 @@ def _migrate_push_engagement_schema(conn, is_sqlite: bool) -> None:
             conn.execute(text(ddl))
 
 
+def _migrate_product_purchases_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(product_purchases)")).fetchall()
+        names = {row[1] for row in columns}
+        additions = [
+            ("max_downloads", "ALTER TABLE product_purchases ADD COLUMN max_downloads INTEGER NOT NULL DEFAULT 3"),
+            (
+                "download_verify_attempts",
+                "ALTER TABLE product_purchases ADD COLUMN download_verify_attempts INTEGER NOT NULL DEFAULT 0",
+            ),
+            (
+                "download_verify_window_started_at",
+                "ALTER TABLE product_purchases ADD COLUMN download_verify_window_started_at DATETIME",
+            ),
+        ]
+        for column, ddl in additions:
+            if column not in names:
+                conn.execute(text(ddl))
+        return
+
+    for column, ddl in (
+        ("max_downloads", "ALTER TABLE product_purchases ADD COLUMN max_downloads INTEGER NOT NULL DEFAULT 3"),
+        (
+            "download_verify_attempts",
+            "ALTER TABLE product_purchases ADD COLUMN download_verify_attempts INTEGER NOT NULL DEFAULT 0",
+        ),
+        (
+            "download_verify_window_started_at",
+            "ALTER TABLE product_purchases ADD COLUMN download_verify_window_started_at TIMESTAMPTZ",
+        ),
+    ):
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'product_purchases' AND column_name = :column
+                """
+            ),
+            {"column": column},
+        ).fetchone()
+        if not row:
+            conn.execute(text(ddl))
+
+
 def _migrate_postgres_schema() -> None:
     if _is_sqlite:
         return
@@ -316,6 +360,7 @@ def _migrate_postgres_schema() -> None:
         _migrate_users_billing_schema(conn, is_sqlite=False)
         _migrate_profiles_avatar_schema(conn, is_sqlite=False)
         _migrate_push_engagement_schema(conn, is_sqlite=False)
+        _migrate_product_purchases_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -343,3 +388,4 @@ def _migrate_sqlite_schema() -> None:
         _migrate_users_billing_schema(conn, is_sqlite=True)
         _migrate_profiles_avatar_schema(conn, is_sqlite=True)
         _migrate_push_engagement_schema(conn, is_sqlite=True)
+        _migrate_product_purchases_schema(conn, is_sqlite=True)
