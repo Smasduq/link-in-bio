@@ -78,7 +78,7 @@ export default function AppearancePage() {
         </p>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -173,7 +173,7 @@ export default function AppearancePage() {
                     type="button"
                     onClick={() => setTheme({ ...theme, accentColor: color })}
                     className={cn(
-                      "h-10 w-10 rounded-xl border-2 transition-all hover:scale-105",
+                      "h-8 w-8 rounded-xl border-2 transition-all hover:scale-105 md:h-10 md:w-10",
                       theme.accentColor === color ? "border-emerald-500 ring-2 ring-emerald-500/30" : "border-border"
                     )}
                     style={{ background: color }}
@@ -248,8 +248,8 @@ export default function AppearancePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="min-h-[420px] px-6 py-8 text-white" style={previewStyle}>
-              <div className="mx-auto flex max-w-[280px] flex-col items-center text-center">
+            <div className="min-h-[280px] px-4 py-6 text-white md:min-h-[420px] md:px-6 md:py-8" style={previewStyle}>
+              <div className="mx-auto flex w-full max-w-[280px] flex-col items-center text-center">
                 <div
                   className="mb-4 h-16 w-16 rounded-full border-4 bg-white/10"
                   style={{ borderColor: theme.accentColor }}

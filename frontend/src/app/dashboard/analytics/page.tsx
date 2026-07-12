@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { BarChart2, Eye, Globe, MousePointer, Smartphone, TrendingUp } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { AnalyticsResponse } from "@/types/database";
+import { InsightStatCard } from "@/components/dashboard/insight-stat-card";
 import { PageTabs } from "@/components/dashboard/page-tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageLoader } from "@/components/ui/spinner";
@@ -35,10 +36,10 @@ export default function AnalyticsPage() {
   const hasTraffic = data.overview.total_page_views > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div>
-        <h2 className="font-display text-2xl font-bold tracking-tight">Insights</h2>
-        <p className="text-sm text-muted-foreground">Track your page views and link performance</p>
+        <h2 className="font-display text-xl font-bold tracking-tight md:text-2xl">Insights</h2>
+        <p className="line-clamp-2 text-sm text-muted-foreground">Track your page views and link performance</p>
       </div>
 
       <PageTabs
@@ -49,51 +50,35 @@ export default function AnalyticsPage() {
       />
 
       {activeTab === "overview" && (
-        <div className="space-y-6 pt-2">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Card>
-              <CardContent className="p-6">
-                <Eye className="mb-3 h-5 w-5 text-emerald-600" />
-                <p className="text-3xl font-bold">{data.overview.total_page_views}</p>
-                <p className="text-sm text-muted-foreground">Total views</p>
-                <p className="mt-1 text-xs text-emerald-600">+{data.overview.views_last_7_days} this week</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <MousePointer className="mb-3 h-5 w-5 text-emerald-600" />
-                <p className="text-3xl font-bold">{data.overview.total_link_clicks}</p>
-                <p className="text-sm text-muted-foreground">Total clicks</p>
-                <p className="mt-1 text-xs text-emerald-600">+{data.overview.clicks_last_7_days} this week</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <TrendingUp className="mb-3 h-5 w-5 text-emerald-600" />
-                <p className="text-3xl font-bold">{ctr}%</p>
-                <p className="text-sm text-muted-foreground">Click-through rate</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <BarChart2 className="mb-3 h-5 w-5 text-emerald-600" />
-                <p className="text-3xl font-bold">{data.links.length}</p>
-                <p className="text-sm text-muted-foreground">Tracked links</p>
-              </CardContent>
-            </Card>
+        <div className="min-w-0 space-y-6 pt-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-4">
+            <InsightStatCard
+              icon={Eye}
+              value={data.overview.total_page_views}
+              label="Total views"
+              hint={`+${data.overview.views_last_7_days} this week`}
+            />
+            <InsightStatCard
+              icon={MousePointer}
+              value={data.overview.total_link_clicks}
+              label="Total clicks"
+              hint={`+${data.overview.clicks_last_7_days} this week`}
+            />
+            <InsightStatCard icon={TrendingUp} value={`${ctr}%`} label="Click-through rate" />
+            <InsightStatCard icon={BarChart2} value={data.links.length} label="Tracked links" />
           </div>
 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-emerald-600" /> Last 7 days
+                <TrendingUp className="h-4 w-4 shrink-0 text-emerald-600 md:h-5 md:w-5" /> Last 7 days
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex h-44 items-end gap-2">
+              <div className="flex h-32 items-end gap-1.5 md:h-44 md:gap-2">
                 {data.daily_stats.map((day) => (
-                  <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
-                    <div className="flex h-36 w-full items-end gap-0.5">
+                  <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                    <div className="flex h-24 w-full items-end gap-0.5 md:h-36">
                       <div
                         className="flex-1 rounded-t-md bg-emerald-500 transition-all duration-300 hover:bg-emerald-600"
                         style={{ height: `${(day.page_views / maxDaily) * 100}%`, minHeight: day.page_views ? 4 : 0 }}
@@ -105,11 +90,11 @@ export default function AnalyticsPage() {
                         title={`${day.link_clicks} clicks`}
                       />
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{day.date.slice(5)}</span>
+                    <span className="truncate text-[10px] text-muted-foreground">{day.date.slice(5)}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 flex gap-6 text-xs text-muted-foreground">
+              <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground md:gap-6">
                 <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" /> Views
                 </span>
@@ -123,7 +108,7 @@ export default function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart2 className="h-5 w-5 text-emerald-600" /> Top links
+                <BarChart2 className="h-4 w-4 shrink-0 text-emerald-600 md:h-5 md:w-5" /> Top links
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -136,18 +121,18 @@ export default function AnalyticsPage() {
                   .map((link, i) => (
                     <div
                       key={link.id}
-                      className="flex items-center gap-3 rounded-xl border border-border px-4 py-3 transition-colors hover:border-emerald-400/40"
+                      className="flex w-full max-w-full items-center gap-2 rounded-xl border border-border px-3 py-2.5 transition-colors hover:border-emerald-400/40 md:gap-3 md:px-4 md:py-3"
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-xs font-bold text-emerald-600 dark:bg-emerald-950/50">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-xs font-bold text-emerald-600 dark:bg-emerald-950/50 md:h-8 md:w-8">
                         {i + 1}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">{link.title}</p>
                         <p className="truncate text-xs text-muted-foreground">{link.url}</p>
                       </div>
-                      <div className="text-right">
+                      <div className="shrink-0 text-right">
                         <p className="text-sm font-semibold text-emerald-600">{link.click_count}</p>
-                        <p className="text-xs text-muted-foreground">+{link.clicks_last_7_days} wk</p>
+                        <p className="truncate text-xs text-muted-foreground">+{link.clicks_last_7_days} wk</p>
                       </div>
                     </div>
                   ))
@@ -158,7 +143,7 @@ export default function AnalyticsPage() {
       )}
 
       {activeTab === "referrers" && (
-        <div className="space-y-4 pt-2">
+        <div className="min-w-0 space-y-4 pt-2">
           <Card>
             <CardHeader>
               <CardTitle>Top referrers</CardTitle>
@@ -174,9 +159,9 @@ export default function AnalyticsPage() {
                     { label: "Other", pct: 6 },
                   ].map((item) => (
                     <div key={item.label}>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span className="font-medium">{item.label}</span>
-                        <span className="text-muted-foreground">{item.pct}%</span>
+                      <div className="mb-1 flex justify-between gap-2 text-sm">
+                        <span className="truncate font-medium">{item.label}</span>
+                        <span className="shrink-0 text-muted-foreground">{item.pct}%</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-secondary">
                         <div
@@ -192,7 +177,7 @@ export default function AnalyticsPage() {
                   Referrer data appears once your page receives traffic.
                 </p>
               )}
-              <p className="mt-4 text-xs text-muted-foreground">
+              <p className="mt-4 line-clamp-2 text-xs text-muted-foreground">
                 Per-link referrer breakdown is available on each link&apos;s insights.
               </p>
             </CardContent>
@@ -201,11 +186,11 @@ export default function AnalyticsPage() {
       )}
 
       {activeTab === "devices" && (
-        <div className="space-y-4 pt-2">
+        <div className="min-w-0 space-y-4 pt-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Smartphone className="h-5 w-5 text-emerald-600" /> Device breakdown
+                <Smartphone className="h-4 w-4 shrink-0 text-emerald-600 md:h-5 md:w-5" /> Device breakdown
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -217,12 +202,12 @@ export default function AnalyticsPage() {
                     { label: "Tablet", pct: 4, icon: Globe },
                   ].map((item) => (
                     <div key={item.label}>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span className="flex items-center gap-2 font-medium">
-                          <item.icon className="h-4 w-4 text-muted-foreground" />
-                          {item.label}
+                      <div className="mb-1 flex justify-between gap-2 text-sm">
+                        <span className="flex min-w-0 items-center gap-2 font-medium">
+                          <item.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{item.label}</span>
                         </span>
-                        <span className="text-muted-foreground">{item.pct}%</span>
+                        <span className="shrink-0 text-muted-foreground">{item.pct}%</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-secondary">
                         <div

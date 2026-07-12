@@ -128,22 +128,24 @@ function StatCard({
       className="lb-card lb-stat"
       style={{ transitionDelay: `${delay}ms` }}
     >
-      <div className="lb-card__body">
-        <div className="lb-stat__top">
-          <div className="lb-stat__icon" aria-hidden>
-            <Icon />
-          </div>
-          <svg className="lb-stat__spark" viewBox="0 0 80 32" aria-hidden>
-            <path d={sparklinePoints(sparkData)} fill="none" stroke="var(--lb-emerald)" strokeWidth="2" />
-          </svg>
+      <div className="lb-card__body lb-stat__body">
+        <div className="lb-stat__icon" aria-hidden>
+          <Icon />
         </div>
-        <p className="lb-stat__value">{formatNumber(animated)}{suffix}</p>
-        <p className="lb-stat__label">{label}</p>
-        <span className={`lb-stat__delta ${trendClass}`}>
-          {delta > 0 ? <TrendingUp size={14} /> : delta < 0 ? <TrendingDown size={14} /> : null}
-          {delta > 0 ? "+" : ""}
-          {Math.round(delta)}% vs prior period
-        </span>
+        <div className="lb-stat__main">
+          <div className="lb-stat__row">
+            <p className="lb-stat__value">{formatNumber(animated)}{suffix}</p>
+            <svg className="lb-stat__spark" viewBox="0 0 80 32" aria-hidden>
+              <path d={sparklinePoints(sparkData)} fill="none" stroke="var(--lb-emerald)" strokeWidth="2" />
+            </svg>
+          </div>
+          <p className="lb-stat__label">{label}</p>
+          <span className={`lb-stat__delta ${trendClass}`}>
+            {delta > 0 ? <TrendingUp size={14} /> : delta < 0 ? <TrendingDown size={14} /> : null}
+            {delta > 0 ? "+" : ""}
+            {Math.round(delta)}% vs prior period
+          </span>
+        </div>
       </div>
     </article>
   );
@@ -335,9 +337,13 @@ function TopLinkRow({ link, index }: { link: ReturnType<typeof buildTopLinks>[nu
       style={{ transitionDelay: `${index * 60}ms` }}
     >
       <div className="lb-toplink__icon">{link.platform.slice(0, 2).toUpperCase()}</div>
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="lb-toplink__title">{link.platform}</p>
-        <p className="lb-toplink__meta">{link.title} · {formatPercent(link.ctr)} CTR</p>
+        <p className="lb-toplink__meta">
+          <span className="lb-toplink__meta-title">{link.title}</span>
+          {" · "}
+          {formatPercent(link.ctr)} CTR
+        </p>
       </div>
       <div className="lb-toplink__stats">
         <p className="lb-toplink__clicks">{formatNumber(link.clicks)}</p>
@@ -605,11 +611,11 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
             </div>
           </article>
 
-          <div>
+          <div className="lb-actions-wrap">
             <div className="lb-section__head">
               <h2 className="lb-section__title">Quick actions</h2>
             </div>
-            <div className="lb-actions-scroll">
+            <div className="lb-actions-scroll" role="region" aria-label="Quick actions">
               {[
                 { label: "Add link", href: "/dashboard/links", icon: Plus },
                 { label: "Customize theme", href: "/dashboard/appearance", icon: Palette },
