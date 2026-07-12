@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import "../../styles/finale-cta.css";
+import { SITE_NAME } from "@/lib/site";
 
 const FAQ_ITEMS = [
   {
-    question: "Is LinkBio free?",
+    question: `Is ${SITE_NAME} free?`,
     answer:
       "Yes. You can create your page for free and upgrade whenever you need more customization and analytics.",
   },
@@ -18,7 +19,7 @@ const FAQ_ITEMS = [
   {
     question: "Can I track clicks?",
     answer:
-      "Yes. LinkBio provides analytics so you can understand how visitors interact with your links.",
+      `Yes. ${SITE_NAME} provides analytics so you can understand how visitors interact with your links.`,
   },
   {
     question: "How long does setup take?",

@@ -3,11 +3,18 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class UniqueVisitorsByDay(BaseModel):
+    date: str
+    unique_visitors: int
+
+
 class AnalyticsOverview(BaseModel):
     total_page_views: int
     total_link_clicks: int
     views_last_7_days: int
     clicks_last_7_days: int
+    unique_visitors_total: int
+    unique_visitors_by_day: list[UniqueVisitorsByDay]
 
 
 class LinkAnalytics(BaseModel):
@@ -25,10 +32,23 @@ class DailyStat(BaseModel):
     link_clicks: int
 
 
+class InsightBucket(BaseModel):
+    label: str
+    count: int
+    pct: float
+
+
+class VisitorInsights(BaseModel):
+    top_regions: list[InsightBucket]
+    top_devices: list[InsightBucket]
+    most_active_time: list[InsightBucket]
+
+
 class AnalyticsResponse(BaseModel):
     overview: AnalyticsOverview
     links: list[LinkAnalytics]
     daily_stats: list[DailyStat]
+    visitor_insights: VisitorInsights
 
 
 class TrackViewRequest(BaseModel):

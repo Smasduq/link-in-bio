@@ -1,8 +1,8 @@
-"""HTML email templates aligned with LinkBio site design (emerald, clean, premium)."""
+"""HTML email templates aligned with Smasduq LinkBio site design (emerald, clean, premium)."""
 
 from urllib.parse import urlparse
 
-from app.config import settings
+from app.config import SITE_NAME, settings
 
 # Site palette
 EMERALD_500 = "#10b981"
@@ -46,7 +46,7 @@ def _footer() -> str:
     <tr>
       <td style="padding: 24px 32px 32px; border-top: 1px solid {BORDER}; background-color: {BG_PAGE};">
         <p style="margin: 0 0 6px; font-family: {FONT_STACK}; font-size: 13px; color: {TEXT_MUTED};">
-          — The LinkBio Team
+          — The {SITE_NAME} Team
         </p>
         <p style="margin: 0; font-family: {FONT_STACK}; font-size: 13px;">
           <a href="mailto:{settings.mail_from}" style="color: {EMERALD_600}; text-decoration: none;">
@@ -88,11 +88,11 @@ def _layout(*, title: str, content: str, preheader: str = "") -> str:
                 <tr>
                   <td style="width: 36px; height: 36px; background-color: {EMERALD_600}; border-radius: 12px;
                              text-align: center; vertical-align: middle;">
-                    <span style="font-family: {FONT_STACK}; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 36px;">L</span>
+                    <span style="font-family: {FONT_STACK}; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 36px;">S</span>
                   </td>
                   <td style="padding-left: 12px; vertical-align: middle;">
                     <span style="font-family: {FONT_STACK}; font-size: 18px; font-weight: 700; color: {TEXT_PRIMARY};">
-                      LinkBio
+                      {SITE_NAME}
                     </span>
                   </td>
                 </tr>
@@ -108,7 +108,7 @@ def _layout(*, title: str, content: str, preheader: str = "") -> str:
           {_footer()}
         </table>
         <p style="margin: 24px 0 0; font-family: {FONT_STACK}; font-size: 12px; color: {TEXT_SUBTLE}; text-align: center;">
-          © 2026 LinkBio · {_site_label()}
+          © 2026 {SITE_NAME} · {_site_label()}
         </p>
       </td>
     </tr>
@@ -124,7 +124,7 @@ def otp_email_html(*, otp: str, purpose: str) -> str:
         Your verification code
       </h1>
       <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: {TEXT_MUTED};">
-        Use this 6-digit code to {action} to your LinkBio account.
+        Use this 6-digit code to {action} to your {SITE_NAME} account.
       </p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
@@ -143,7 +143,7 @@ def otp_email_html(*, otp: str, purpose: str) -> str:
       </p>
     """
     return _layout(
-        title="Your LinkBio verification code",
+        title=f"Your {SITE_NAME} verification code",
         content=content,
         preheader=f"Your verification code is {otp}",
     )
@@ -152,7 +152,7 @@ def otp_email_html(*, otp: str, purpose: str) -> str:
 def welcome_email_html(*, username: str, profile_url: str, dashboard_url: str) -> str:
     content = f"""
       <h1 style="margin: 0 0 12px; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: {TEXT_PRIMARY};">
-        Welcome to <span style="color: {EMERALD_600};">LinkBio</span>
+        Welcome to <span style="color: {EMERALD_600};">{SITE_NAME}</span>
       </h1>
       <p style="margin: 0 0 8px; font-size: 16px; line-height: 1.6; color: {TEXT_MUTED};">
         Hi @{username}, your account is ready.
@@ -170,7 +170,7 @@ def welcome_email_html(*, username: str, profile_url: str, dashboard_url: str) -
       {_button(dashboard_url, "Go to Dashboard →")}
     """
     return _layout(
-        title="Welcome to LinkBio",
+        title=f"Welcome to {SITE_NAME}",
         content=content,
         preheader=f"Your page is live at {profile_url}",
     )
@@ -182,7 +182,7 @@ def password_reset_email_html(*, reset_url: str) -> str:
         Reset your password
       </h1>
       <p style="margin: 0 0 8px; font-size: 16px; line-height: 1.6; color: {TEXT_MUTED};">
-        We received a request to reset your LinkBio password.
+        We received a request to reset your {SITE_NAME} password.
       </p>
       <p style="margin: 0; font-size: 16px; line-height: 1.6; color: {TEXT_MUTED};">
         Click the button below to choose a new password. This link expires in 1 hour.
@@ -193,7 +193,7 @@ def password_reset_email_html(*, reset_url: str) -> str:
       </p>
     """
     return _layout(
-        title="Reset your LinkBio password",
+        title=f"Reset your {SITE_NAME} password",
         content=content,
-        preheader="Reset your LinkBio password",
+        preheader=f"Reset your {SITE_NAME} password",
     )

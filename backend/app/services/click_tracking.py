@@ -46,7 +46,7 @@ def record_link_click(
             user_agent=user_agent[:500] if user_agent else None,
             device_type=parse_device_type(user_agent),
             country=lookup_country_code(client_ip),
-            visitor_hash=hash_visitor_ip(client_ip, settings.secret_key),
+            visitor_hash=hash_visitor_ip(client_ip, user_agent, settings.secret_key),
         )
     )
     db.commit()

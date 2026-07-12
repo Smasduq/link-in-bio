@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import SessionProvider from "@/components/SessionProvider";
+import { SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,21 +16,19 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "LinkBio | Your links. Your brand. One page.",
+  title: `${SITE_NAME} | ${SITE_TAGLINE}`,
   description: "Create a beautiful, premium link-in-bio page in seconds.",
   icons: {
-    icon: [
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: "/favicon.png",
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: "/favicon.svg",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://link.smasduq.xyz",
-    siteName: "LinkBio",
-    images: [{ url: "/logo.svg", width: 335, height: 80, alt: "LinkBio" }],
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    images: [{ url: "/logo.svg", width: 458, height: 80, alt: SITE_NAME }],
   },
 };
 

@@ -1,26 +1,17 @@
-from datetime import datetime, timedelta, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
-from app.dependencies import get_current_user, get_user_profile
-from app.models.analytics import LinkClick, PageView
+from app.models.analytics import PageView
 from app.models.link import Link
 from app.models.profile import Profile
-from app.models.user import User
-from app.schemas.analytics import (
-    AnalyticsOverview,
-    AnalyticsResponse,
-    DailyStat,
-    LinkAnalytics,
-    TrackClickRequest,
-    TrackViewRequest,
-)
+from app.schemas.analytics import TrackClickRequest, TrackViewRequest
 from app.schemas.link import LinkResponse
 from app.schemas.profile import PublicProfileResponse, ThemeSettings
+from app.services.click_context import get_client_ip, hash_visitor_ip, parse_device_type
 from app.services.click_tracking import record_link_click
+from app.services.geoip import lookup_country_code
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -41,6 +32,23 @@ def _serialize_public_profile(profile: Profile, links: list[Link]) -> PublicPage
     )
 
 
+def _record_page_view(db: Session, profile: Profile, request: Request, referrer: str | None) -> None:
+    user_agent = request.headers.get("user-agent")
+    client_ip = get_client_ip(request)
+
+    db.add(
+        PageView(
+            profile_id=profile.id,
+            referrer=referrer,
+            user_agent=user_agent[:500] if user_agent else None,
+            device_type=parse_device_type(user_agent),
+            country=lookup_country_code(client_ip),
+            visitor_hash=hash_visitor_ip(client_ip, user_agent, settings.secret_key),
+        )
+    )
+    db.commit()
+
+
 @router.get("/{username}", response_model=PublicPageResponse)
 def get_public_profile(username: str, db: Session = Depends(get_db)):
     profile = db.query(Profile).filter(Profile.username == username.lower()).first()
@@ -57,19 +65,17 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{username}/view", status_code=status.HTTP_204_NO_CONTENT)
-def track_page_view(username: str, payload: TrackViewRequest, db: Session = Depends(get_db)):
+def track_page_view(
+    username: str,
+    payload: TrackViewRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
     profile = db.query(Profile).filter(Profile.username == username.lower()).first()
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
 
-    db.add(
-        PageView(
-            profile_id=profile.id,
-            referrer=payload.referrer,
-            user_agent=None,
-        )
-    )
-    db.commit()
+    _record_page_view(db, profile, request, payload.referrer)
 
 
 @router.post("/links/{link_id}/click", status_code=status.HTTP_204_NO_CONTENT)

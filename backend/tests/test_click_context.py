@@ -1,4 +1,19 @@
-from app.services.click_context import normalize_referrer, parse_device_type, hash_visitor_ip
+from app.services.click_context import (
+    get_client_ip,
+    hash_visitor_ip,
+    normalize_referrer,
+    parse_device_type,
+)
+
+
+def test_hash_visitor_ip_daily_rotation():
+    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    h1 = hash_visitor_ip("203.0.113.5", ua, "secret")
+    h2 = hash_visitor_ip("203.0.113.5", ua, "secret")
+    assert h1 == h2
+    assert h1 != hash_visitor_ip("203.0.113.6", ua, "secret")
+    assert h1 != hash_visitor_ip("203.0.113.5", "Mozilla/5.0 iPhone", "secret")
+    assert hash_visitor_ip(None, ua, "secret") is None
 
 
 def test_normalize_referrer_direct():
@@ -23,11 +38,3 @@ def test_parse_device_type():
     assert parse_device_type("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)") == "mobile"
     assert parse_device_type("Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)") == "tablet"
     assert parse_device_type("Mozilla/5.0 (Windows NT 10.0; Win64; x64)") == "desktop"
-
-
-def test_hash_visitor_ip_daily_rotation():
-    h1 = hash_visitor_ip("203.0.113.5", "secret")
-    h2 = hash_visitor_ip("203.0.113.5", "secret")
-    assert h1 == h2
-    assert h1 != hash_visitor_ip("203.0.113.6", "secret")
-    assert hash_visitor_ip(None, "secret") is None

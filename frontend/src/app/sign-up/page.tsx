@@ -10,6 +10,7 @@ import { EmailDeliveryHint } from "@/components/auth/email-delivery-hint";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SITE_NAME } from "@/lib/site";
 
 function normalizeUsername(value: string) {
   return value.toLowerCase().replace(/^@/, "").trim();
@@ -115,8 +116,8 @@ function SignUpForm() {
       title="Create account"
       subtitle={
         searchParams.get("username")
-          ? `Claim @${claimedUsername} on LinkBio`
-          : "Join LinkBio and share your brand"
+          ? `Claim @${claimedUsername} on ${SITE_NAME}`
+          : `Join ${SITE_NAME} and share your brand`
       }
     >
       {error && <p className="mb-4 text-center text-sm text-destructive">{error}</p>}

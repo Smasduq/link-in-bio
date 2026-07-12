@@ -5,11 +5,17 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class ThemeSettings(BaseModel):
-    backgroundType: Literal["solid", "gradient", "image"] = "solid"
+    backgroundType: Literal["solid", "gradient", "image", "pattern"] = "solid"
     background: str = "#0a0a0f"
-    buttonStyle: Literal["rounded", "square", "outline", "filled"] = "filled"
-    fontFamily: Literal["inter", "dm-sans", "playfair", "space-grotesk", "outfit"] = "dm-sans"
+    textColor: str = "#ffffff"
     accentColor: str = "#6366f1"
+    accentSecondary: str | None = None
+    buttonStyle: Literal["rounded", "square", "outline", "filled", "glass"] = "filled"
+    fontDisplay: str = "DM Sans"
+    fontBody: str = "DM Sans"
+    fontFamily: str | None = None
+    signatureEffect: str | None = None
+    presetId: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -33,10 +39,25 @@ class ThemeSettings(BaseModel):
             else:
                 normalized["backgroundType"] = "solid"
 
-        font = normalized.get("fontFamily")
-        allowed = {"inter", "dm-sans", "playfair", "space-grotesk", "outfit"}
-        if font not in allowed:
-            normalized["fontFamily"] = "dm-sans"
+        legacy_font_map = {
+            "inter": ("Inter", "Inter"),
+            "dm-sans": ("DM Sans", "DM Sans"),
+            "playfair": ("Playfair Display", "Playfair Display"),
+            "space-grotesk": ("Space Grotesk", "Space Grotesk"),
+            "outfit": ("Outfit", "Outfit"),
+        }
+        legacy_font = normalized.get("fontFamily")
+        if not normalized.get("fontDisplay") and legacy_font in legacy_font_map:
+            display, body = legacy_font_map[legacy_font]
+            normalized["fontDisplay"] = display
+            normalized["fontBody"] = body
+
+        if not normalized.get("fontBody"):
+            normalized["fontBody"] = normalized.get("fontDisplay") or "DM Sans"
+        if not normalized.get("fontDisplay"):
+            normalized["fontDisplay"] = normalized.get("fontBody") or "DM Sans"
+        if not normalized.get("textColor"):
+            normalized["textColor"] = "#ffffff"
 
         return normalized
 

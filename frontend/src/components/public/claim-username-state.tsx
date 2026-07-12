@@ -3,6 +3,7 @@ import { ArrowRight, AtSign, Sparkles } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { SITE_NAME } from "@/lib/site";
 
 type ClaimUsernameStateProps = {
   username: string;
@@ -36,7 +37,7 @@ export function ClaimUsernameState({ username, className }: ClaimUsernameStatePr
             @{handle} is available
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            No one has claimed this page yet. Create your free LinkBio and share your links in one place.
+            No one has claimed this page yet. Create your free {SITE_NAME} page and share your links in one place.
           </p>
 
           <Link

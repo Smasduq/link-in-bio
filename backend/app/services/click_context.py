@@ -1,6 +1,6 @@
 import hashlib
 import re
-from datetime import date
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from fastapi import Request
@@ -43,9 +43,10 @@ def parse_device_type(user_agent: str | None) -> str:
     return "desktop"
 
 
-def hash_visitor_ip(ip: str | None, secret: str) -> str | None:
-    """Daily-rotating salted hash — no raw IP stored."""
+def hash_visitor_ip(ip: str | None, user_agent: str | None, secret: str) -> str | None:
+    """Daily-rotating salted hash (UTC date + IP + User-Agent) — no raw IP stored."""
     if not ip:
         return None
-    salt = f"{secret}:{date.today().isoformat()}"
-    return hashlib.sha256(f"{salt}:{ip}".encode()).hexdigest()
+    utc_date = datetime.now(timezone.utc).date().isoformat()
+    salt = f"{secret}:{utc_date}"
+    return hashlib.sha256(f"{salt}:{ip}:{user_agent or ''}".encode()).hexdigest()

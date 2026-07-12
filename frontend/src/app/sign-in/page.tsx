@@ -10,6 +10,7 @@ import { EmailDeliveryHint } from "@/components/auth/email-delivery-hint";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SITE_NAME } from "@/lib/site";
 
 function SignInForm() {
   const router = useRouter();
@@ -123,7 +124,7 @@ function SignInForm() {
   }
 
   return (
-    <AuthShell title="Welcome back" subtitle="Sign in to your LinkBio dashboard">
+    <AuthShell title="Welcome back" subtitle={`Sign in to your ${SITE_NAME} dashboard`}>
       {error && <p className="mb-4 text-center text-sm text-destructive">{error}</p>}
       <form onSubmit={handleCredentials} className="space-y-4">
         <Input

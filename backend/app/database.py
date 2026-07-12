@@ -49,6 +49,50 @@ def init_db() -> None:
     _migrate_postgres_schema()
 
 
+def _migrate_page_views_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(page_views)")).fetchall()
+        names = {row[1] for row in columns}
+        if "device_type" not in names:
+            conn.execute(
+                text("ALTER TABLE page_views ADD COLUMN device_type VARCHAR(20) NOT NULL DEFAULT 'desktop'")
+            )
+        if "country" not in names:
+            conn.execute(text("ALTER TABLE page_views ADD COLUMN country VARCHAR(2)"))
+        if "visitor_hash" not in names:
+            conn.execute(text("ALTER TABLE page_views ADD COLUMN visitor_hash VARCHAR(64)"))
+        conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_page_views_visitor_hash ON page_views (visitor_hash)")
+        )
+        return
+
+    for column, ddl in (
+        ("device_type", "ALTER TABLE page_views ADD COLUMN device_type VARCHAR(20) NOT NULL DEFAULT 'desktop'"),
+        ("country", "ALTER TABLE page_views ADD COLUMN country VARCHAR(2)"),
+        ("visitor_hash", "ALTER TABLE page_views ADD COLUMN visitor_hash VARCHAR(64)"),
+    ):
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'page_views' AND column_name = :column
+                """
+            ),
+            {"column": column},
+        ).fetchone()
+        if not row:
+            conn.execute(text(ddl))
+
+    conn.execute(
+        text(
+            """
+            CREATE INDEX IF NOT EXISTS ix_page_views_visitor_hash
+            ON page_views (visitor_hash)
+            """
+        )
+    )
+
+
 def _migrate_link_clicks_schema(conn, is_sqlite: bool) -> None:
     if is_sqlite:
         columns = conn.execute(text("PRAGMA table_info(link_clicks)")).fetchall()
@@ -110,6 +154,7 @@ def _migrate_postgres_schema() -> None:
             conn.execute(text("ALTER TABLE links ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT false"))
 
         _migrate_link_clicks_schema(conn, is_sqlite=False)
+        _migrate_page_views_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -131,3 +176,4 @@ def _migrate_sqlite_schema() -> None:
             conn.execute(text("ALTER TABLE links ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT 0"))
 
         _migrate_link_clicks_schema(conn, is_sqlite=True)
+        _migrate_page_views_schema(conn, is_sqlite=True)

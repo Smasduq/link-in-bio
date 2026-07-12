@@ -1,16 +1,26 @@
-export type BackgroundType = "solid" | "gradient" | "image";
+export type BackgroundType = "solid" | "gradient" | "image" | "pattern";
 
-export type ButtonStyle = "rounded" | "square" | "outline" | "filled";
+export type ButtonStyle = "rounded" | "square" | "outline" | "filled" | "glass";
 
+export type SignatureEffect = "blinking-cursor" | "frosted-blur" | "grid-overlay" | "";
+
+/** @deprecated Use fontDisplay / fontBody instead. */
 export type FontPreset = "inter" | "dm-sans" | "playfair" | "space-grotesk" | "outfit";
 
 /** Stored as `theme_settings` JSON on the profile record in the API/DB. */
 export type ThemeSettings = {
   backgroundType: BackgroundType;
   background: string;
-  buttonStyle: ButtonStyle;
-  fontFamily: FontPreset;
+  textColor: string;
   accentColor: string;
+  accentSecondary?: string;
+  buttonStyle: ButtonStyle;
+  fontDisplay: string;
+  fontBody: string;
+  /** @deprecated Legacy single-font field. */
+  fontFamily?: FontPreset;
+  signatureEffect?: SignatureEffect;
+  presetId?: string;
 };
 
 export type Profile = {
@@ -43,6 +53,13 @@ export type AnalyticsOverview = {
   total_link_clicks: number;
   views_last_7_days: number;
   clicks_last_7_days: number;
+  unique_visitors_total: number;
+  unique_visitors_by_day: UniqueVisitorsByDay[];
+};
+
+export type UniqueVisitorsByDay = {
+  date: string;
+  unique_visitors: number;
 };
 
 export type LinkAnalytics = {
@@ -60,10 +77,23 @@ export type DailyStat = {
   link_clicks: number;
 };
 
+export type InsightBucket = {
+  label: string;
+  count: number;
+  pct: number;
+};
+
+export type VisitorInsights = {
+  top_regions: InsightBucket[];
+  top_devices: InsightBucket[];
+  most_active_time: InsightBucket[];
+};
+
 export type AnalyticsResponse = {
   overview: AnalyticsOverview;
   links: LinkAnalytics[];
   daily_stats: DailyStat[];
+  visitor_insights: VisitorInsights;
 };
 
 export type PublicProfile = {

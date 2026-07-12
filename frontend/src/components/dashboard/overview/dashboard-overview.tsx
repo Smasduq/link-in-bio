@@ -32,7 +32,6 @@ import {
   buildTopLinks,
   computeCtr,
   DashboardPeriod,
-  estimateUniqueVisitors,
   filterChartData,
   formatNumber,
   formatPercent,
@@ -43,6 +42,7 @@ import {
   sparklinePoints,
 } from "@/lib/dashboard-utils";
 import { getBackgroundStyle, getLinkButtonStyle, normalizeTheme } from "@/lib/profile-theme";
+import { SITE_NAME } from "@/lib/site";
 import { useAnimatedCounter, useInView, useRipple } from "@/components/dashboard/overview/hooks";
 import "@/styles/dashboard-overview.css";
 
@@ -369,7 +369,8 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
   const viewSpark = analytics.daily_stats.map((d) => d.page_views);
   const clickSpark = analytics.daily_stats.map((d) => d.link_clicks);
   const ctr = computeCtr(overview.total_page_views, overview.total_link_clicks);
-  const uniqueVisitors = estimateUniqueVisitors(overview.total_page_views);
+  const uniqueVisitors = overview.unique_visitors_total;
+  const uniqueSpark = overview.unique_visitors_by_day.slice(-7).map((d) => d.unique_visitors);
 
   const checklist = buildProfileChecklist(profile, links);
   const completionPct = Math.round((checklist.filter((c) => c.done).length / checklist.length) * 100);
@@ -458,7 +459,7 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
             <h1 className="lb-header__greeting">{greeting} 👋</h1>
             <p className="lb-header__sub">
               {hasTraffic
-                ? "Your LinkBio is attracting visitors today. Let's see how it's performing."
+                ? `Your ${SITE_NAME} page is attracting visitors today. Let's see how it's performing.`
                 : "Your portfolio is live. Share it to start collecting insights."}
             </p>
           </div>
@@ -515,8 +516,8 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
             icon={Users}
             label="Unique visitors"
             value={uniqueVisitors}
-            delta={periodTrend(viewSpark.map((v) => Math.round(v * 0.72)))}
-            sparkData={viewSpark.map((v) => Math.round(v * 0.72))}
+            delta={periodTrend(uniqueSpark)}
+            sparkData={uniqueSpark}
             delay={240}
           />
         </section>
@@ -537,7 +538,7 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
             <div className="lb-card lb-empty">
               <div className="lb-empty__illus"><Link2 /></div>
               <h3 className="lb-empty__title">No links yet</h3>
-              <p className="lb-empty__text">Start building your LinkBio — add your first link to track performance.</p>
+              <p className="lb-empty__text">Start building your {SITE_NAME} page — add your first link to track performance.</p>
               <RippleButton href="/dashboard/links" variant="primary">
                 <Plus /> Add your first link
               </RippleButton>
@@ -557,23 +558,14 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
             <h2 id="insights-heading" className="lb-section__title">Visitor insights</h2>
           </div>
           <div className="lb-insights">
-            <InsightCard title="Top regions" items={[
-              { label: "🇳🇬 Nigeria", pct: hasTraffic ? 42 : 0 },
-              { label: "🇺🇸 United States", pct: hasTraffic ? 28 : 0 },
-              { label: "🇬🇧 United Kingdom", pct: hasTraffic ? 15 : 0 },
-            ]} />
-            <InsightCard title="Top devices" items={[
-              { label: "Mobile", pct: hasTraffic ? 68 : 0, icon: Smartphone },
-              { label: "Desktop", pct: hasTraffic ? 26 : 0, icon: Monitor },
-              { label: "Tablet", pct: hasTraffic ? 6 : 0, icon: Tablet },
-            ]} />
-            <InsightCard title="Most active time" items={[
-              { label: "Morning", pct: hasTraffic ? 22 : 0 },
-              { label: "Afternoon", pct: hasTraffic ? 45 : 0 },
-              { label: "Evening", pct: hasTraffic ? 33 : 0 },
-            ]} />
+            <InsightCard title="Top regions" items={analytics.visitor_insights.top_regions} />
+            <InsightCard title="Top devices" items={analytics.visitor_insights.top_devices.map((item) => ({
+              ...item,
+              icon: item.label === "Mobile" ? Smartphone : item.label === "Tablet" ? Tablet : Monitor,
+            }))} />
+            <InsightCard title="Most active time" items={analytics.visitor_insights.most_active_time} />
           </div>
-          {!hasTraffic && (
+          {!hasTraffic && analytics.visitor_insights.top_regions.every((item) => item.count === 0) && (
             <p className="lb-search__hint" style={{ marginTop: "0.75rem" }}>
               Insights populate as your page receives traffic.
             </p>
@@ -715,28 +707,33 @@ function InsightCard({
   items,
 }: {
   title: string;
-  items: { label: string; pct: number; icon?: typeof Globe }[];
+  items: { label: string; pct: number; count?: number; icon?: typeof Globe }[];
 }) {
   const { ref, visible } = useInView();
+  const hasData = items.some((item) => (item.count ?? item.pct) > 0);
 
   return (
     <article ref={ref as React.RefObject<HTMLElement>} className="lb-card">
       <div className="lb-card__body">
         <h3 className="lb-section__title" style={{ fontSize: "0.9375rem" }}>{title}</h3>
-        <ul className="lb-insight__list">
-          {items.map((item) => (
-            <li key={item.label} className="lb-insight__row">
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
-                {item.icon && <item.icon size={14} />}
-                {item.label}
-              </span>
-              <div className="lb-insight__bar-wrap">
-                <div className="lb-insight__bar" style={{ width: visible ? `${item.pct}%` : "0%" }} />
-              </div>
-              <span className="lb-insight__pct">{item.pct}%</span>
-            </li>
-          ))}
-        </ul>
+        {!hasData ? (
+          <p className="lb-search__hint">No data yet</p>
+        ) : (
+          <ul className="lb-insight__list">
+            {items.filter((item) => item.pct > 0).map((item) => (
+              <li key={item.label} className="lb-insight__row">
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
+                  {item.icon && <item.icon size={14} />}
+                  {item.label}
+                </span>
+                <div className="lb-insight__bar-wrap">
+                  <div className="lb-insight__bar" style={{ width: visible ? `${item.pct}%` : "0%" }} />
+                </div>
+                <span className="lb-insight__pct">{item.pct}%</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </article>
   );

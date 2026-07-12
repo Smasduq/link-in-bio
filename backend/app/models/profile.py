@@ -9,8 +9,10 @@ from app.database import Base
 DEFAULT_THEME = {
     "backgroundType": "solid",
     "background": "#0a0a0f",
+    "textColor": "#ffffff",
     "buttonStyle": "filled",
-    "fontFamily": "dm-sans",
+    "fontDisplay": "DM Sans",
+    "fontBody": "DM Sans",
     "accentColor": "#6366f1",
 }
 

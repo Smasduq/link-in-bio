@@ -29,7 +29,8 @@ class Settings(BaseSettings):
     smtp_use_ssl: bool = False
     otp_expire_minutes: int = 10
 
-    # Offline GeoIP — download GeoLite2-Country.mmdb from MaxMind (free account)
+    # Offline GeoIP — absolute path recommended; relative paths resolve from backend/
+    # Default fallback: backend/app/services/GeoLite2-Country.mmdb
     geolite2_country_path: str = ""
 
     @property
@@ -42,3 +43,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+SITE_NAME = "Smasduq LinkBio"

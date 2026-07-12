@@ -5,6 +5,7 @@ import { ArrowRight, BarChart3, Clock, Link2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { HeroBackground } from "@/components/landing/hero-background";
 import { HeroPreviewCard } from "@/components/landing/hero-preview-card";
+import { SITE_NAME } from "@/lib/site";
 
 const stats = [
   { icon: Clock, value: "<60s", label: "Setup" },
@@ -41,7 +42,7 @@ export function HeroSection() {
         </div>
 
         <p className="hero-enter hero-enter-3 relative mx-auto mt-6 max-w-[600px] px-2 text-base leading-relaxed text-muted-foreground sm:mt-8 sm:px-0 sm:text-lg md:text-xl">
-          Creators, founders, and artists use LinkBio to bring every link, offer, and story into one
+          Creators, founders, and artists use {SITE_NAME} to bring every link, offer, and story into one
           beautiful page — so the people who matter always find the right door.
         </p>
 
