@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.models.profile import Profile
 from app.models.user import User
 
 ALGORITHM = "HS256"
@@ -34,9 +35,26 @@ def decode_access_token(token: str) -> str | None:
         return None
 
 
-def authenticate_user(db: Session, email: str, password: str) -> User | None:
-    normalized = email.strip().lower()
-    user = db.query(User).filter(func.lower(User.email) == normalized).first()
+def normalize_login_identifier(identifier: str) -> str:
+    value = identifier.strip().lower()
+    if value.startswith("@"):
+        value = value[1:]
+    return value
+
+
+def authenticate_user(db: Session, identifier: str, password: str) -> User | None:
+    normalized = normalize_login_identifier(identifier)
+    if not normalized:
+        return None
+
+    if "@" in normalized:
+        user = db.query(User).filter(func.lower(User.email) == normalized).first()
+    else:
+        profile = db.query(Profile).filter(func.lower(Profile.username) == normalized).first()
+        if not profile:
+            return None
+        user = db.query(User).filter(User.id == profile.user_id).first()
+
     if not user or not verify_password(password, user.password_hash):
         return None
     return user

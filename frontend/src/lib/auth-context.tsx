@@ -35,7 +35,7 @@ type LoginRequestResponse = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<LoginRequestResponse>;
+  login: (identifier: string, password: string) => Promise<LoginRequestResponse>;
   verifyLoginOtp: (challengeId: string, otp: string) => Promise<void>;
   requestRegisterOtp: (email: string, password: string, username: string) => Promise<OtpChallenge>;
   verifyRegisterOtp: (challengeId: string, otp: string) => Promise<void>;
@@ -90,10 +90,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.refresh();
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (identifier: string, password: string) => {
     const data = await apiFetch<LoginRequestResponse>("/api/auth/login/request", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     });
 
     if (!data.requires_otp && data.access_token && data.user) {

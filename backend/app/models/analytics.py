@@ -26,6 +26,9 @@ class LinkClick(Base):
     link_id: Mapped[str] = mapped_column(String(36), ForeignKey("links.id", ondelete="CASCADE"), index=True, nullable=False)
     referrer: Mapped[str | None] = mapped_column(String(500), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    device_type: Mapped[str] = mapped_column(String(20), default="desktop", nullable=False)
+    country: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    visitor_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     clicked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     link: Mapped["Link"] = relationship("Link", back_populates="clicks")

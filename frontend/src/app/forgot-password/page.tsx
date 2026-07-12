@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { EmailDeliveryHint } from "@/components/auth/email-delivery-hint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -34,7 +35,12 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell title="Forgot password" subtitle="Enter your email and we'll send a reset link">
       {error && <p className="mb-4 text-center text-sm text-destructive">{error}</p>}
-      {message && <p className="mb-4 text-center text-sm text-success">{message}</p>}
+      {message && (
+        <>
+          <p className="mb-2 text-center text-sm text-success">{message}</p>
+          <EmailDeliveryHint className="mb-4 text-center text-xs text-muted-foreground" />
+        </>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input label="Email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <Button type="submit" className="w-full" loading={loading}>Send Reset Link</Button>

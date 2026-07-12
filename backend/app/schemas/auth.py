@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class RegisterRequest(BaseModel):
@@ -8,8 +8,20 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    """Accepts email or username in `identifier` (`email` kept for legacy clients)."""
+    identifier: str | None = Field(default=None, min_length=1)
+    email: str | None = Field(default=None, min_length=1)
     password: str
+
+    @model_validator(mode="after")
+    def require_login_identifier(self) -> "LoginRequest":
+        if not self.login_identifier:
+            raise ValueError("Email or username is required")
+        return self
+
+    @property
+    def login_identifier(self) -> str:
+        return (self.identifier or self.email or "").strip()
 
 
 class TokenResponse(BaseModel):

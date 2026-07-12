@@ -46,6 +46,70 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _migrate_sqlite_schema()
+    _migrate_postgres_schema()
+
+
+def _migrate_link_clicks_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(link_clicks)")).fetchall()
+        names = {row[1] for row in columns}
+        if "device_type" not in names:
+            conn.execute(
+                text("ALTER TABLE link_clicks ADD COLUMN device_type VARCHAR(20) NOT NULL DEFAULT 'desktop'")
+            )
+        if "country" not in names:
+            conn.execute(text("ALTER TABLE link_clicks ADD COLUMN country VARCHAR(2)"))
+        if "visitor_hash" not in names:
+            conn.execute(text("ALTER TABLE link_clicks ADD COLUMN visitor_hash VARCHAR(64)"))
+        conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_link_clicks_visitor_hash ON link_clicks (visitor_hash)")
+        )
+        return
+
+    for column, ddl in (
+        ("device_type", "ALTER TABLE link_clicks ADD COLUMN device_type VARCHAR(20) NOT NULL DEFAULT 'desktop'"),
+        ("country", "ALTER TABLE link_clicks ADD COLUMN country VARCHAR(2)"),
+        ("visitor_hash", "ALTER TABLE link_clicks ADD COLUMN visitor_hash VARCHAR(64)"),
+    ):
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'link_clicks' AND column_name = :column
+                """
+            ),
+            {"column": column},
+        ).fetchone()
+        if not row:
+            conn.execute(text(ddl))
+
+    conn.execute(
+        text(
+            """
+            CREATE INDEX IF NOT EXISTS ix_link_clicks_visitor_hash
+            ON link_clicks (visitor_hash)
+            """
+        )
+    )
+
+
+def _migrate_postgres_schema() -> None:
+    if _is_sqlite:
+        return
+
+    with engine.begin() as conn:
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'links' AND column_name = 'is_featured'
+                """
+            )
+        ).fetchone()
+        if not row:
+            conn.execute(text("ALTER TABLE links ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT false"))
+
+        _migrate_link_clicks_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -53,10 +117,17 @@ def _migrate_sqlite_schema() -> None:
         return
 
     with engine.begin() as conn:
-        columns = conn.execute(text("PRAGMA table_info(users)")).fetchall()
-        column_names = {row[1] for row in columns}
-        if "email_verified_at" not in column_names:
+        user_columns = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+        user_column_names = {row[1] for row in user_columns}
+        if "email_verified_at" not in user_column_names:
             conn.execute(text("ALTER TABLE users ADD COLUMN email_verified_at DATETIME"))
             conn.execute(
                 text("UPDATE users SET email_verified_at = created_at WHERE email_verified_at IS NULL")
             )
+
+        link_columns = conn.execute(text("PRAGMA table_info(links)")).fetchall()
+        link_column_names = {row[1] for row in link_columns}
+        if "is_featured" not in link_column_names:
+            conn.execute(text("ALTER TABLE links ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT 0"))
+
+        _migrate_link_clicks_schema(conn, is_sqlite=True)

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,7 @@ from app.schemas.analytics import (
 )
 from app.schemas.link import LinkResponse
 from app.schemas.profile import PublicProfileResponse, ThemeSettings
+from app.services.click_tracking import record_link_click
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -65,24 +66,17 @@ def track_page_view(username: str, payload: TrackViewRequest, db: Session = Depe
         PageView(
             profile_id=profile.id,
             referrer=payload.referrer,
-            user_agent=payload.user_agent,
+            user_agent=None,
         )
     )
     db.commit()
 
 
 @router.post("/links/{link_id}/click", status_code=status.HTTP_204_NO_CONTENT)
-def track_link_click(link_id: str, payload: TrackClickRequest, db: Session = Depends(get_db)):
-    link = db.query(Link).filter(Link.id == link_id, Link.is_active.is_(True)).first()
-    if not link:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
-
-    link.click_count += 1
-    db.add(
-        LinkClick(
-            link_id=link.id,
-            referrer=payload.referrer,
-            user_agent=payload.user_agent,
-        )
-    )
-    db.commit()
+def track_link_click_public(
+    link_id: str,
+    payload: TrackClickRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    record_link_click(db, link_id, request, payload.referrer)

@@ -1,14 +1,37 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.link import Link
 from app.models.user import User
+from app.schemas.analytics import LinkClickInsights, TrackClickRequest
 from app.schemas.link import LinkCreate, LinkReorderRequest, LinkResponse, LinkUpdate
 from app.services.auth import get_favicon_url
+from app.services.click_tracking import get_link_click_insights, record_link_click
 
 router = APIRouter(prefix="/links", tags=["links"])
+
+
+@router.post("/{link_id}/click", status_code=status.HTTP_204_NO_CONTENT)
+def track_link_click(
+    link_id: str,
+    payload: TrackClickRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Public click tracking — no auth; logs referrer, device, country, and hashed visitor id."""
+    record_link_click(db, link_id, request, payload.referrer)
+
+
+@router.get("/{link_id}/insights", response_model=LinkClickInsights)
+def link_click_insights(
+    link_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Owner-only aggregated click insights for a single link."""
+    return get_link_click_insights(db, link_id, current_user.id)
 
 
 @router.get("", response_model=list[LinkResponse])
