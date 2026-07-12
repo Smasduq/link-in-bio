@@ -153,6 +153,8 @@ def complete_login(db: Session, challenge: OtpChallenge) -> User:
     if not user.email_verified_at:
         user.email_verified_at = datetime.now(timezone.utc)
 
+    user.last_login_at = datetime.now(timezone.utc)
+    db.add(user)
     db.delete(challenge)
     db.commit()
     db.refresh(user)

@@ -1,4 +1,4 @@
-"""In-app and email notifications for billing events."""
+"""In-app, email, and Web Push notifications."""
 
 from __future__ import annotations
 
@@ -8,10 +8,17 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models.notification import NOTIFICATION_TYPES, Notification
+from app.models.notification import (
+    BILLING_NOTIFICATION_TYPES,
+    ENGAGEMENT_NOTIFICATION_TYPES,
+    NOTIFICATION_TYPES,
+    Notification,
+)
 from app.models.user import User
 from app.services.email import send_email
+from app.services.notification_preferences import get_or_create_preferences
 from app.services.notification_emails import render_notification_email, render_notification_message
+from app.services.web_push import render_push_payload, send_push_to_user
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +27,14 @@ NotificationType = str
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def notification_category(notification_type: NotificationType) -> str:
+    if notification_type in BILLING_NOTIFICATION_TYPES:
+        return "billing"
+    if notification_type in ENGAGEMENT_NOTIFICATION_TYPES:
+        return "engagement"
+    return "billing"
 
 
 def send_transactional_email(*, to: str, subject: str, html_body: str, text_body: str) -> None:
@@ -53,8 +68,8 @@ def notify_user(
     context: dict[str, Any] | None = None,
 ) -> Notification | None:
     """
-    Insert an in-app notification and send a matching transactional email.
-    Email failures are logged and never block the caller's transaction.
+    Insert an in-app notification and deliver via email and/or Web Push based on
+    user preferences. Channel failures are logged and never block other channels.
     """
     if notification_type not in NOTIFICATION_TYPES:
         raise ValueError(f"Unknown notification type: {notification_type}")
@@ -64,6 +79,8 @@ def notify_user(
         logger.warning("notify_user skipped — user %s not found", user_id)
         return None
 
+    prefs = get_or_create_preferences(db, user_id)
+    category = notification_category(notification_type)
     ctx = dict(context or {})
     message = render_notification_message(notification_type, ctx)
     notification = Notification(
@@ -75,23 +92,38 @@ def notify_user(
     db.add(notification)
     db.flush()
 
-    try:
-        subject, html_body, text_body = render_notification_email(
-            notification_type,
-            ctx,
-            recipient_email=user.email,
-        )
-        send_transactional_email(
-            to=user.email,
-            subject=subject,
-            html_body=html_body,
-            text_body=text_body,
-        )
-    except Exception:
-        logger.exception(
-            "Failed to send %s notification email to user %s",
-            notification_type,
-            user_id,
-        )
+    email_ok = prefs.email_billing_enabled if category == "billing" else prefs.email_engagement_enabled
+    push_ok = prefs.push_billing_enabled if category == "billing" else prefs.push_engagement_enabled
+
+    if email_ok:
+        try:
+            subject, html_body, text_body = render_notification_email(
+                notification_type,
+                ctx,
+                recipient_email=user.email,
+            )
+            send_transactional_email(
+                to=user.email,
+                subject=subject,
+                html_body=html_body,
+                text_body=text_body,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to send %s notification email to user %s",
+                notification_type,
+                user_id,
+            )
+
+    if push_ok:
+        try:
+            title, body, url = render_push_payload(notification_type, ctx)
+            send_push_to_user(db, user_id, title=title, body=body, url=url)
+        except Exception:
+            logger.exception(
+                "Failed to send %s push notification to user %s",
+                notification_type,
+                user_id,
+            )
 
     return notification

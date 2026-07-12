@@ -8,7 +8,9 @@ from app.models.product import Product
 from app.models.product_purchase import ProductPurchase
 from app.models.subscriber import Subscriber
 from app.models.notification import Notification
+from app.models.notification_preferences import NotificationPreferences
 from app.models.profile import Profile
+from app.models.push_subscription import PushSubscription
 from app.models.user import User
 
 __all__ = [
@@ -22,6 +24,8 @@ __all__ = [
     "BillingEvent",
     "BillingPlanRecord",
     "Notification",
+    "NotificationPreferences",
+    "PushSubscription",
     "Product",
     "ProductPurchase",
     "Subscriber",

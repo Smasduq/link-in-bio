@@ -51,6 +51,14 @@ def record_link_click(
     )
     db.commit()
 
+    try:
+        from app.services.engagement_notifications import check_click_milestone
+
+        check_click_milestone(db, link.user_id)
+        db.commit()
+    except Exception:
+        db.rollback()
+
 
 def get_link_click_insights(db: Session, link_id: str, user_id: str) -> LinkClickInsights:
     link = db.query(Link).filter(Link.id == link_id, Link.user_id == user_id).first()

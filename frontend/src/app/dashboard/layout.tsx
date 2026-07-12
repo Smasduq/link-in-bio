@@ -14,6 +14,7 @@ import { apiFetch } from "@/lib/api";
 import { Profile } from "@/types/database";
 import { Logo } from "@/components/brand/logo";
 import { BillingAlertBanner } from "@/components/notifications/billing-alert-banner";
+import { PushEnableBanner } from "@/components/notifications/push-enable-banner";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { resolveAvatarUrl } from "@/lib/avatar";
@@ -29,6 +30,7 @@ import {
 import { MoreBottomSheet } from "@/components/dashboard/more-bottom-sheet";
 import { UpgradePromptProvider } from "@/components/billing/upgrade-prompt-provider";
 import { PageLoader } from "@/components/ui/spinner";
+import { registerServiceWorker, syncUserTimezone } from "@/lib/web-push";
 import "@/styles/dashboard-overview.css";
 
 function NavLink({
@@ -208,6 +210,11 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    void registerServiceWorker().catch(() => undefined);
+    void syncUserTimezone().catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     setMoreOpen(false);
   }, [pathname]);
 
@@ -301,6 +308,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         >
           <div className="mx-auto w-full animate-fade-in xl:max-w-[1100px]">
             <BillingAlertBanner />
+            <PushEnableBanner />
             <UpgradePromptProvider>{children}</UpgradePromptProvider>
           </div>
         </main>

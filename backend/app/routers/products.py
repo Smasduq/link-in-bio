@@ -22,6 +22,7 @@ from app.schemas.product import (
 from app.services.cloudinary_storage import build_public_image_url, upload_product_cover, upload_product_file
 from app.services.fee_pricing import calculate_fee_inclusive_amount
 from app.services.premium_access import assert_can_create_product
+from app.services.product_purchases import initialize_product_purchase
 
 router = APIRouter(prefix="/products", tags=["products"])
 

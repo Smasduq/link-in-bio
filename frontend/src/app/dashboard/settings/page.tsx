@@ -8,6 +8,7 @@ import { isPremiumFromProfile } from "@/lib/premium-features";
 import { SettingsBillingLink } from "@/components/billing/settings-billing-link";
 import { useUpgradeAfterSave } from "@/components/billing/upgrade-prompt-provider";
 import { EmailCaptureSection } from "@/components/dashboard/email-capture-section";
+import { PushNotificationSettings } from "@/components/notifications/push-notification-settings";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,6 +80,8 @@ export default function SettingsPage() {
       </div>
 
       <SettingsBillingLink />
+
+      <PushNotificationSettings />
 
       <EmailCaptureSection
         enabled={profile.email_capture_enabled}

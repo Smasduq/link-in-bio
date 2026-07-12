@@ -16,7 +16,32 @@ NOTIFICATION_TYPES = (
     "access_expired",
     "resubscribed",
     "product_sale",
+    "good_morning",
+    "good_evening",
+    "weekly_summary",
+    "milestone_clicks",
+    "inactivity_nudge",
 )
+
+BILLING_NOTIFICATION_TYPES = frozenset({
+    "payment_success",
+    "payment_failed",
+    "subscription_cancelled",
+    "renewal_upcoming",
+    "renewal_failed",
+    "access_expiring",
+    "access_expired",
+    "resubscribed",
+    "product_sale",
+})
+
+ENGAGEMENT_NOTIFICATION_TYPES = frozenset({
+    "good_morning",
+    "good_evening",
+    "weekly_summary",
+    "milestone_clicks",
+    "inactivity_nudge",
+})
 
 
 class Notification(Base):

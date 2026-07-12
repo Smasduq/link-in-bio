@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     product_download_token_days: int = 7
     product_max_file_bytes: int = 50 * 1024 * 1024
 
+    # Web Push (generate: npx web-push generate-vapid-keys)
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    push_icon_url: str = ""
+    cron_secret: str = ""
+
     # Avatar storage — Cloudinary
     cloudinary_cloud_name: str = ""
     cloudinary_api_key: str = ""
@@ -48,6 +54,10 @@ class Settings(BaseSettings):
     @property
     def default_avatar_url(self) -> str:
         return f"{self.frontend_url.rstrip('/')}/linkbio-mark.png"
+
+    @property
+    def resolved_push_icon_url(self) -> str:
+        return self.push_icon_url or f"{self.frontend_url.rstrip('/')}/logo.png"
 
     @property
     def paystack_yearly_base_amount_ngn(self) -> float:

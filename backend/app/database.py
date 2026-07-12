@@ -242,6 +242,42 @@ def _migrate_profiles_avatar_schema(conn, is_sqlite: bool) -> None:
             conn.execute(text(ddl))
 
 
+def _migrate_push_engagement_schema(conn, is_sqlite: bool) -> None:
+    user_columns = (
+        {row[1] for row in conn.execute(text("PRAGMA table_info(users)")).fetchall()}
+        if is_sqlite
+        else {
+            row[0]
+            for row in conn.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name = 'users'")
+            ).fetchall()
+        }
+    )
+
+    user_additions_sqlite = [
+        ("timezone", "ALTER TABLE users ADD COLUMN timezone VARCHAR(64)"),
+        ("last_login_at", "ALTER TABLE users ADD COLUMN last_login_at DATETIME"),
+        ("last_morning_notification_date", "ALTER TABLE users ADD COLUMN last_morning_notification_date DATE"),
+        ("last_evening_notification_date", "ALTER TABLE users ADD COLUMN last_evening_notification_date DATE"),
+        ("last_weekly_summary_date", "ALTER TABLE users ADD COLUMN last_weekly_summary_date DATE"),
+        ("last_inactivity_nudge_at", "ALTER TABLE users ADD COLUMN last_inactivity_nudge_at DATETIME"),
+        ("clicks_milestone_sent", "ALTER TABLE users ADD COLUMN clicks_milestone_sent INTEGER NOT NULL DEFAULT 0"),
+    ]
+    user_additions_pg = [
+        ("timezone", "ALTER TABLE users ADD COLUMN timezone VARCHAR(64)"),
+        ("last_login_at", "ALTER TABLE users ADD COLUMN last_login_at TIMESTAMPTZ"),
+        ("last_morning_notification_date", "ALTER TABLE users ADD COLUMN last_morning_notification_date DATE"),
+        ("last_evening_notification_date", "ALTER TABLE users ADD COLUMN last_evening_notification_date DATE"),
+        ("last_weekly_summary_date", "ALTER TABLE users ADD COLUMN last_weekly_summary_date DATE"),
+        ("last_inactivity_nudge_at", "ALTER TABLE users ADD COLUMN last_inactivity_nudge_at TIMESTAMPTZ"),
+        ("clicks_milestone_sent", "ALTER TABLE users ADD COLUMN clicks_milestone_sent INTEGER NOT NULL DEFAULT 0"),
+    ]
+
+    for column, ddl in (user_additions_sqlite if is_sqlite else user_additions_pg):
+        if column not in user_columns:
+            conn.execute(text(ddl))
+
+
 def _migrate_postgres_schema() -> None:
     if _is_sqlite:
         return
@@ -273,6 +309,7 @@ def _migrate_postgres_schema() -> None:
         _migrate_page_views_schema(conn, is_sqlite=False)
         _migrate_users_billing_schema(conn, is_sqlite=False)
         _migrate_profiles_avatar_schema(conn, is_sqlite=False)
+        _migrate_push_engagement_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -299,3 +336,4 @@ def _migrate_sqlite_schema() -> None:
         _migrate_page_views_schema(conn, is_sqlite=True)
         _migrate_users_billing_schema(conn, is_sqlite=True)
         _migrate_profiles_avatar_schema(conn, is_sqlite=True)
+        _migrate_push_engagement_schema(conn, is_sqlite=True)

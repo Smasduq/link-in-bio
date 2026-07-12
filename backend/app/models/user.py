@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, Date, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -26,6 +26,13 @@ class User(Base):
     renewal_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
     manual_renewal_reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_paystack_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_morning_notification_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_evening_notification_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_weekly_summary_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_inactivity_nudge_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    clicks_milestone_sent: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     profile: Mapped["Profile"] = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")

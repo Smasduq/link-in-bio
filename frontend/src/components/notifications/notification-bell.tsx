@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Bell } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { type NotificationListResponse } from "@/lib/notifications";
-import { cn } from "@/lib/utils";
+import { NotificationListItem } from "@/components/notifications/notification-list-item";
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -62,29 +63,25 @@ export function NotificationBell() {
 
       {open ? (
         <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-          <div className="border-b border-border px-4 py-3">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <p className="text-sm font-semibold">Notifications</p>
+            <Link
+              href="/dashboard/notifications"
+              className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+              onClick={() => setOpen(false)}
+            >
+              View all
+            </Link>
           </div>
           <div className="max-h-80 overflow-y-auto">
             {data?.items.length ? (
               data.items.map((item) => (
-                <button
+                <NotificationListItem
                   key={item.id}
-                  type="button"
-                  onClick={() => {
-                    if (!item.is_read) void markRead(item.id);
-                  }}
-                  className={cn(
-                    "block w-full border-b border-border px-4 py-3 text-left text-sm transition hover:bg-secondary/60",
-                    !item.is_read && "bg-emerald-50/50 dark:bg-emerald-950/20"
-                  )}
-                >
-                  <p className="font-medium capitalize">{item.type.replaceAll("_", " ")}</p>
-                  <p className="mt-1 text-muted-foreground">{item.message}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {new Date(item.created_at).toLocaleString()}
-                  </p>
-                </button>
+                  item={item}
+                  compact
+                  onMarkRead={markRead}
+                />
               ))
             ) : (
               <p className="px-4 py-6 text-sm text-muted-foreground">No notifications yet.</p>

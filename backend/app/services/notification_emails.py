@@ -52,6 +52,20 @@ def render_notification_message(notification_type: NotificationType, context: di
         "access_expired": "Your Pro access has ended. You're now on the Free plan.",
         "resubscribed": "Welcome back to Pro!",
         "product_sale": f"You made a sale! {context.get('product_title', 'Product')} — {_format_ngn(context.get('amount'))}.",
+        "good_morning": (
+            f"Good morning — your page had {context.get('clicks', 0)} clicks "
+            f"{context.get('period_label', 'yesterday')}."
+        ),
+        "good_evening": (
+            f"Good evening — {context.get('clicks', 0)} clicks "
+            f"{context.get('period_label', 'today')}. Keep it up!"
+        ),
+        "weekly_summary": (
+            f"This week: {context.get('clicks', 0)} clicks, "
+            f"{context.get('visitors', 0)} visitors — see full insights."
+        ),
+        "milestone_clicks": f"🎉 You just hit {context.get('total_clicks', 0)} total clicks!",
+        "inactivity_nudge": "Your page is still getting visitors — come check your stats.",
     }
     return messages.get(notification_type, "You have a new billing update.")
 
@@ -79,6 +93,11 @@ def render_notification_email(
         "access_expired": f"Pro access ended — {SITE_NAME}",
         "resubscribed": f"Welcome back to Pro — {SITE_NAME}",
         "product_sale": f"You made a sale! — {SITE_NAME}",
+        "good_morning": f"Good morning — your page stats — {SITE_NAME}",
+        "good_evening": f"Good evening — your page stats — {SITE_NAME}",
+        "weekly_summary": f"Your weekly summary — {SITE_NAME}",
+        "milestone_clicks": f"Milestone reached — {SITE_NAME}",
+        "inactivity_nudge": f"Your page is active — {SITE_NAME}",
     }
 
     bodies = {
@@ -123,6 +142,31 @@ def render_notification_email(
             f"<strong>{_format_ngn(context.get('amount'))}</strong></p>"
             f"<p>Buyer: {context.get('buyer_email', '—')}</p>"
             f'<p><a href="{_link("/dashboard/sales")}">View sales</a></p>'
+        ),
+        "good_morning": (
+            f"<p>Good morning ☀️</p>"
+            f"<p>Your page had <strong>{context.get('clicks', 0)}</strong> clicks "
+            f"{context.get('period_label', 'yesterday')}.</p>"
+            f'<p><a href="{_link("/dashboard/analytics")}">View analytics</a></p>'
+        ),
+        "good_evening": (
+            f"<p>Good evening 🌙</p>"
+            f"<p><strong>{context.get('clicks', 0)}</strong> clicks "
+            f"{context.get('period_label', 'today')}. Keep it up!</p>"
+            f'<p><a href="{_link("/dashboard/analytics")}">View analytics</a></p>'
+        ),
+        "weekly_summary": (
+            f"<p>This week: <strong>{context.get('clicks', 0)}</strong> clicks, "
+            f"<strong>{context.get('visitors', 0)}</strong> visitors.</p>"
+            f'<p><a href="{_link("/dashboard/analytics")}">See full insights</a></p>'
+        ),
+        "milestone_clicks": (
+            f"<p>🎉 You just hit <strong>{context.get('total_clicks', 0)}</strong> total clicks!</p>"
+            f'<p><a href="{_link("/dashboard/analytics")}">View stats</a></p>'
+        ),
+        "inactivity_nudge": (
+            f"<p>Your page is still getting visitors — come check your stats.</p>"
+            f'<p><a href="{_link("/dashboard")}">Open dashboard</a></p>'
         ),
     }
 
