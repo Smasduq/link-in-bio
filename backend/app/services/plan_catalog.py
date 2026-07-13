@@ -14,16 +14,8 @@ from app.services.paystack import create_paystack_plan, get_paystack_plan_amount
 
 logger = logging.getLogger(__name__)
 
-_PLAN_MODEL_KEYS = frozenset({
-    "slug",
-    "name",
-    "interval",
-    "base_amount",
-    "service_fee",
-    "vat_on_fee",
-    "total_charge",
-    "total_charge_kobo",
-})
+# Bump when changing billing plan sync logic (visible in Vercel startup logs).
+PLAN_CATALOG_VERSION = "2026-07-13-v2"
 
 PLAN_DEFINITIONS: tuple[dict[str, Any], ...] = (
     {
@@ -51,9 +43,10 @@ def _yearly_savings_fields(base_amount: float) -> dict[str, float]:
     }
 
 
-def _pricing_row(slug: str, name: str, interval: str, base_amount: float) -> dict[str, Any]:
+def _plan_record_row(slug: str, name: str, interval: str, base_amount: float) -> dict[str, Any]:
+    """Fields stored on BillingPlanRecord only."""
     pricing = calculate_fee_inclusive_amount(base_amount)
-    row: dict[str, Any] = {
+    return {
         "slug": slug,
         "name": name,
         "interval": interval,
@@ -63,28 +56,27 @@ def _pricing_row(slug: str, name: str, interval: str, base_amount: float) -> dic
         "total_charge": pricing["total_charge"],
         "total_charge_kobo": total_charge_kobo(base_amount),
     }
+
+
+def _pricing_row(slug: str, name: str, interval: str, base_amount: float) -> dict[str, Any]:
+    """API payload row — includes computed yearly savings when applicable."""
+    row = _plan_record_row(slug, name, interval, base_amount)
     if slug == "yearly":
         row.update(_yearly_savings_fields(base_amount))
     return row
-
-
-def _plan_model_fields(row: dict[str, Any]) -> dict[str, Any]:
-    """Fields persisted on BillingPlanRecord — excludes computed yearly savings."""
-    return {key: row[key] for key in _PLAN_MODEL_KEYS}
 
 
 def upsert_local_plans(db: Session) -> list[BillingPlanRecord]:
     records: list[BillingPlanRecord] = []
 
     for definition in PLAN_DEFINITIONS:
-        row = _pricing_row(
+        model_fields = _plan_record_row(
             definition["slug"],
             definition["name"],
             definition["interval"],
             float(definition["base_amount"]()),
         )
-        model_fields = _plan_model_fields(row)
-        record = db.query(BillingPlanRecord).filter(BillingPlanRecord.slug == row["slug"]).first()
+        record = db.query(BillingPlanRecord).filter(BillingPlanRecord.slug == model_fields["slug"]).first()
         if record is None:
             record = BillingPlanRecord(**model_fields)
             db.add(record)
@@ -99,6 +91,7 @@ def upsert_local_plans(db: Session) -> list[BillingPlanRecord]:
 
 async def ensure_billing_plans(db: Session) -> None:
     """Upsert local plan rows and create Paystack plans when configured."""
+    logger.info("Syncing billing plans (%s)", PLAN_CATALOG_VERSION)
     previous_kobo: dict[str, tuple[str | None, int]] = {}
     for definition in PLAN_DEFINITIONS:
         existing = db.query(BillingPlanRecord).filter(BillingPlanRecord.slug == definition["slug"]).first()
