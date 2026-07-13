@@ -9,6 +9,7 @@ import { ProfileAnnouncementBanner } from "@/components/public/profile-announcem
 import { ProfileContentBlocks } from "@/components/public/profile-content-blocks";
 import { SocialIconsRow } from "@/components/social/social-icons-row";
 import { BrandWordmark } from "@/components/brand/logo";
+import { ReportProfileButton } from "@/components/public/report-profile-button";
 import type { PublicProfile } from "@/types/database";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -169,16 +170,23 @@ function ProfileContent({ profile }: { profile: PublicProfile }) {
           />
         </nav>
 
-        {profile.show_branding_badge !== false ? (
-          <footer className="mt-10 flex flex-col items-center gap-1.5 text-center">
-            <span className="text-xs opacity-40" style={{ color: theme.textColor }}>
-              Powered by
-            </span>
-            <Link href="/" className="opacity-50 transition-opacity hover:opacity-80">
-              <BrandWordmark height={18} color={theme.textColor} />
-            </Link>
-          </footer>
-        ) : null}
+        <footer className="mt-10 flex flex-col items-center gap-1.5 text-center">
+          {profile.show_branding_badge !== false ? (
+            <>
+              <span className="text-xs opacity-40" style={{ color: theme.textColor }}>
+                Powered by
+              </span>
+              <Link href="/" className="opacity-50 transition-opacity hover:opacity-80">
+                <BrandWordmark height={18} color={theme.textColor} />
+              </Link>
+            </>
+          ) : null}
+          <ReportProfileButton
+            profileId={profile.profile_id}
+            username={profile.username}
+            textColor={theme.textColor}
+          />
+        </footer>
       </div>
     </ProfileThemeShell>
   );

@@ -100,3 +100,137 @@ class AdminUserDetailResponse(BaseModel):
 class AdminActionResponse(BaseModel):
     message: str
     data: dict[str, Any] | None = None
+
+
+class AdminTransactionItem(BaseModel):
+    id: str
+    reference: str
+    user_id: str | None = None
+    user_email: str | None = None
+    username: str | None = None
+    amount_ngn: float
+    status: str
+    type: str
+    date: datetime
+    buyer_email: str | None = None
+    product_title: str | None = None
+
+
+class AdminTransactionListResponse(BaseModel):
+    items: list[AdminTransactionItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class AdminRefundRequest(AdminActionRequest):
+    reference: str = Field(min_length=3, max_length=255)
+
+
+class AdminSubscriptionItem(BaseModel):
+    user_id: str
+    email: str
+    username: str | None
+    plan: str
+    subscription_status: str | None
+    premium_until: datetime | None
+    is_trial: bool
+    paystack_subscription_code: str | None
+
+
+class AdminSubscriptionListResponse(BaseModel):
+    items: list[AdminSubscriptionItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class AdminWebhookEventItem(BaseModel):
+    id: str
+    event_type: str
+    paystack_reference: str | None
+    user_id: str | None
+    processing_status: str
+    processing_error: str | None
+    created_at: datetime
+    payload: dict[str, Any]
+
+
+class AdminWebhookListResponse(BaseModel):
+    items: list[AdminWebhookEventItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class AdminProductItem(BaseModel):
+    id: str
+    title: str
+    price: float
+    is_active: bool
+    username: str | None
+    user_id: str | None
+    created_at: datetime
+
+
+class AdminProductListResponse(BaseModel):
+    items: list[AdminProductItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class AdminReportItem(BaseModel):
+    id: str
+    reporter_email: str
+    target_type: str
+    target_id: str
+    target_label: str | None
+    reason: str
+    status: str
+    created_at: datetime
+
+
+class AdminReportListResponse(BaseModel):
+    items: list[AdminReportItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class AdminReportActionRequest(AdminActionRequest):
+    action: Literal["resolve", "dismiss"]
+
+
+class AdminBroadcastRequest(BaseModel):
+    message: str = Field(min_length=3, max_length=2000)
+    subject: str | None = Field(default=None, max_length=120)
+
+
+class AdminCronRunItem(BaseModel):
+    id: str
+    job_name: str
+    status: str
+    details: dict[str, Any]
+    error_message: str | None
+    started_at: datetime
+    finished_at: datetime | None
+
+
+class AdminCronRunListResponse(BaseModel):
+    items: list[AdminCronRunItem]
+
+
+class AdminFeatureFlagItem(BaseModel):
+    key: str
+    value: Any
+    description: str | None
+    updated_at: datetime | None
+
+
+class AdminFeatureFlagListResponse(BaseModel):
+    items: list[AdminFeatureFlagItem]
+
+
+class AdminFeatureFlagUpdateRequest(BaseModel):
+    value: Any

@@ -24,7 +24,7 @@ export function NotificationListItem({ item, onMarkRead, compact = false }: Noti
         if (!item.is_read) onMarkRead?.(item.id);
       }}
       className={cn(
-        "flex w-full gap-2.5 text-left transition hover:bg-secondary/60 sm:gap-3",
+        "flex w-full min-w-0 gap-2.5 text-left transition hover:bg-secondary/60 sm:gap-3",
         compact ? "border-b border-border px-3 py-2.5 text-sm last:border-b-0 sm:px-4 sm:py-3" : "px-3 py-3 sm:px-4 sm:py-4",
         !item.is_read && "bg-emerald-50/50 dark:bg-emerald-950/20"
       )}
@@ -39,7 +39,7 @@ export function NotificationListItem({ item, onMarkRead, compact = false }: Noti
       </span>
       <span className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{label}</p>
-        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground sm:text-sm">{item.message}</p>
+        <p className="mt-0.5 line-clamp-2 break-words text-xs text-muted-foreground sm:text-sm">{item.message}</p>
         <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">
           {new Date(item.created_at).toLocaleString(undefined, {
             month: "short",

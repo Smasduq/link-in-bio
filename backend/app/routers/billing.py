@@ -23,6 +23,7 @@ from app.schemas.billing import (
     StartTrialResponse,
     VerifyTransactionResponse,
 )
+from app.models.paystack_webhook_event import PaystackWebhookEvent
 from app.services.billing import (
     apply_verified_transaction,
     billing_history_payload,
@@ -32,6 +33,7 @@ from app.services.billing import (
     log_billing_event,
     mark_subscription_cancelled,
 )
+from app.services.webhook_logging import create_webhook_event, mark_webhook_failed, mark_webhook_success
 from app.services.premium_access import get_premium_status
 from app.services.notifications import has_recent_notification, notify_user
 from app.services.product_purchases import process_product_purchase_webhook
@@ -282,6 +284,10 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload") from exc
 
+    webhook_row = create_webhook_event(db, event)
+    webhook_id = webhook_row.id
+    db.commit()
+
     try:
         event_type = event.get("event")
         data = event.get("data") or {}
@@ -292,6 +298,15 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
             metadata.get("product_id") or metadata.get("purchase_type") == "product"
         ):
             await process_product_purchase_webhook(db, reference)
+            log_billing_event(
+                db,
+                event_type=event_type,
+                payload=event,
+                paystack_reference=reference,
+            )
+            row = db.query(PaystackWebhookEvent).filter(PaystackWebhookEvent.id == webhook_id).first()
+            if row:
+                mark_webhook_success(db, row)
             db.commit()
             return {"status": "ok"}
 
@@ -306,15 +321,25 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
             )
             if user:
                 await process_trial_tokenization_charge(db, user, data, reference=reference)
+            row = db.query(PaystackWebhookEvent).filter(PaystackWebhookEvent.id == webhook_id).first()
+            if row:
+                mark_webhook_success(db, row)
             db.commit()
             return {"status": "ok"}
 
         handle_paystack_event(db, event)
+        row = db.query(PaystackWebhookEvent).filter(PaystackWebhookEvent.id == webhook_id).first()
+        if row:
+            mark_webhook_success(db, row)
         db.commit()
-    except Exception:
+    except Exception as exc:
         db.rollback()
+        row = db.query(PaystackWebhookEvent).filter(PaystackWebhookEvent.id == webhook_id).first()
+        if row:
+            mark_webhook_failed(db, row, str(exc))
+            db.commit()
         logger.exception("Failed to process Paystack webhook")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Webhook processing failed")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Webhook processing failed") from exc
 
     return {"status": "ok"}
 

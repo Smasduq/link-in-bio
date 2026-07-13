@@ -60,7 +60,7 @@ export default function NotificationsPage() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl">Notifications</h1>
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
         ) : null}
       </div>
 
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:flex-wrap sm:gap-2 sm:px-0">
+      <div className="flex w-full min-w-0 gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:gap-2">
         {FILTERS.map((item) => (
           <button
             key={item.id}
@@ -100,7 +100,7 @@ export default function NotificationsPage() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="min-w-0 overflow-hidden rounded-xl border border-border bg-card">
         {data?.items.length ? (
           <ul>
             {data.items.map((item) => (

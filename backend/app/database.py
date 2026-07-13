@@ -408,6 +408,26 @@ def _migrate_users_admin_schema(conn, is_sqlite: bool) -> None:
             conn.execute(text(ddl))
 
 
+def _migrate_product_purchases_refund_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(product_purchases)")).fetchall()
+        names = {row[1] for row in columns}
+        if "refund_status" not in names:
+            conn.execute(text("ALTER TABLE product_purchases ADD COLUMN refund_status VARCHAR(20)"))
+        return
+
+    row = conn.execute(
+        text(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'product_purchases' AND column_name = 'refund_status'
+            """
+        )
+    ).fetchone()
+    if not row:
+        conn.execute(text("ALTER TABLE product_purchases ADD COLUMN refund_status VARCHAR(20)"))
+
+
 def _migrate_postgres_schema() -> None:
     if _is_sqlite:
         return
@@ -443,6 +463,7 @@ def _migrate_postgres_schema() -> None:
         _migrate_product_purchases_schema(conn, is_sqlite=False)
         _migrate_content_layout_schema(conn, is_sqlite=False)
         _migrate_users_admin_schema(conn, is_sqlite=False)
+        _migrate_product_purchases_refund_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -473,3 +494,4 @@ def _migrate_sqlite_schema() -> None:
         _migrate_product_purchases_schema(conn, is_sqlite=True)
         _migrate_content_layout_schema(conn, is_sqlite=True)
         _migrate_users_admin_schema(conn, is_sqlite=True)
+        _migrate_product_purchases_refund_schema(conn, is_sqlite=True)

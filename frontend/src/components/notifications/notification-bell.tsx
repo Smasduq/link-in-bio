@@ -92,8 +92,11 @@ export function NotificationBell() {
               ref={panelRef}
               className={cn(
                 "fixed z-[80] flex flex-col overflow-hidden border border-border bg-card shadow-lg",
-                "inset-x-3 top-[calc(3.5rem+0.5rem)] max-h-[min(55vh,18rem)] rounded-xl",
-                "md:inset-x-auto md:top-auto md:w-72 md:max-h-80 lg:w-80"
+                "max-md:left-[max(0.75rem,env(safe-area-inset-left,0px))]",
+                "max-md:right-[max(0.75rem,env(safe-area-inset-right,0px))]",
+                "max-md:bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px)+0.5rem)]",
+                "max-md:max-h-[min(70dvh,28rem)] max-md:rounded-xl",
+                "md:inset-x-auto md:bottom-auto md:max-h-80 md:rounded-xl md:w-72 lg:w-80"
               )}
               style={
                 desktopCoords
@@ -101,9 +104,9 @@ export function NotificationBell() {
                   : undefined
               }
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2.5 md:px-4 md:py-3">
-                <p className="text-sm font-semibold">Notifications</p>
-                <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2.5 md:px-4 md:py-3">
+                <p className="min-w-0 truncate text-sm font-semibold">Notifications</p>
+                <div className="flex shrink-0 items-center gap-2">
                   <Link
                     href="/dashboard/notifications"
                     className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"

@@ -44,17 +44,17 @@ export function PushEnableBanner() {
   };
 
   return (
-    <div className="mb-4 flex flex-col gap-3 rounded-xl border border-emerald-200/70 bg-emerald-50/70 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-start gap-3">
+    <div className="mb-4 flex min-w-0 flex-col gap-3 rounded-xl border border-emerald-200/70 bg-emerald-50/70 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
         <Bell className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold">Get activity updates in your browser</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Morning and evening stats, milestones, and billing alerts — even when Smasduq is closed.
           </p>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+      <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto sm:self-auto">
         <Button size="sm" loading={busy} onClick={() => void enable()}>
           Enable notifications
         </Button>

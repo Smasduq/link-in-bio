@@ -11,6 +11,7 @@ from app.database import ensure_db, SessionLocal
 from app.routers import admin, analytics, auth, billing, content, dev, downloads, links, notifications, products, profile, public, push, sales, social_links, subscribers, users
 from app.services.geoip import close_geoip, init_geoip, resolve_geolite2_db_path
 from app.services.plan_catalog import ensure_billing_plans
+from app.services.feature_flags import ensure_feature_flags
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,6 +30,8 @@ async def lifespan(_app: FastAPI):
         try:
             await ensure_billing_plans(db)
             logger.info("Billing plans synced")
+            ensure_feature_flags(db)
+            logger.info("Feature flags synced")
         finally:
             db.close()
     except Exception:

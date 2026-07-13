@@ -103,6 +103,7 @@ class AnnouncementUpdate(BaseModel):
 
 
 class PublicProfileResponse(BaseModel):
+    profile_id: str
     username: str
     full_name: str | None = None
     bio: str | None = None

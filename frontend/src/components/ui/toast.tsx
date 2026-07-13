@@ -38,22 +38,28 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed bottom-20 right-4 z-[100] flex w-[min(100vw-2rem,380px)] flex-col gap-2 md:bottom-6">
+      <div
+        className={cn(
+          "pointer-events-none fixed z-[100] flex flex-col gap-2",
+          "inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]",
+          "md:inset-x-auto md:bottom-6 md:right-4 md:left-auto md:w-[min(calc(100vw-2rem),380px)]"
+        )}
+      >
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role="status"
             className={cn(
-              "pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg animate-slide-up",
+              "pointer-events-auto flex min-w-0 items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg animate-slide-up",
               toast.variant === "success" && "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/90 dark:text-emerald-200",
               toast.variant === "error" && "border-red-200 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/90 dark:text-red-200",
               toast.variant === "info" && "border-border bg-card text-foreground"
             )}
           >
-            <p className="flex-1">{toast.message}</p>
+            <p className="min-w-0 flex-1 break-words">{toast.message}</p>
             <button
               type="button"
-              className="rounded-md p-1 opacity-70 transition hover:opacity-100"
+              className="shrink-0 rounded-md p-1 opacity-70 transition hover:opacity-100"
               onClick={() => dismiss(toast.id)}
               aria-label="Dismiss"
             >

@@ -62,7 +62,7 @@ def update_profile(
     if "theme_settings" in updates and updates["theme_settings"] is not None:
         theme = updates["theme_settings"]
         theme_dict = theme.model_dump() if hasattr(theme, "model_dump") else theme
-        validate_theme_settings(theme_dict, is_premium=premium["is_premium"])
+        validate_theme_settings(theme_dict, is_premium=premium["is_premium"], db=db)
         updates["theme_settings"] = theme_dict
 
     for key, value in updates.items():

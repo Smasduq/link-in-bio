@@ -69,6 +69,7 @@ def render_notification_message(notification_type: NotificationType, context: di
         ),
         "milestone_clicks": f"🎉 You just hit {context.get('total_clicks', 0)} total clicks!",
         "inactivity_nudge": "Your page is still getting visitors — come check your stats.",
+        "admin_broadcast": context.get("message") or context.get("subject") or "You have a new message from LinkBio.",
     }
     return messages.get(notification_type, "You have a new billing update.")
 
@@ -102,6 +103,7 @@ def render_notification_email(
         "weekly_summary": f"Your weekly summary — {SITE_NAME}",
         "milestone_clicks": f"Milestone reached — {SITE_NAME}",
         "inactivity_nudge": f"Your page is active — {SITE_NAME}",
+        "admin_broadcast": context.get("subject") or f"Message from {SITE_NAME}",
     }
 
     bodies = {
@@ -175,6 +177,10 @@ def render_notification_email(
         ),
         "inactivity_nudge": (
             f"<p>Your page is still getting visitors — come check your stats.</p>"
+            f'<p><a href="{_link("/dashboard")}">Open dashboard</a></p>'
+        ),
+        "admin_broadcast": (
+            f"<p>{context.get('message', 'You have a new message from LinkBio.')}</p>"
             f'<p><a href="{_link("/dashboard")}">Open dashboard</a></p>'
         ),
     }

@@ -22,6 +22,7 @@ NOTIFICATION_TYPES = (
     "weekly_summary",
     "milestone_clicks",
     "inactivity_nudge",
+    "admin_broadcast",
 )
 
 BILLING_NOTIFICATION_TYPES = frozenset({
@@ -43,6 +44,7 @@ ENGAGEMENT_NOTIFICATION_TYPES = frozenset({
     "weekly_summary",
     "milestone_clicks",
     "inactivity_nudge",
+    "admin_broadcast",
 })
 
 

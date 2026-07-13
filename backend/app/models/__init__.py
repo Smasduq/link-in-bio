@@ -1,3 +1,7 @@
+from app.models.content_report import ContentReport
+from app.models.cron_run import CronRun
+from app.models.feature_flag import FeatureFlag
+from app.models.paystack_webhook_event import PaystackWebhookEvent
 from app.models.admin_audit_log import AdminAuditLog
 from app.models.analytics import LinkClick, PageView
 from app.models.billing_event import BillingEvent
@@ -33,4 +37,8 @@ __all__ = [
     "ProductPurchase",
     "Subscriber",
     "AdminAuditLog",
+    "ContentReport",
+    "FeatureFlag",
+    "CronRun",
+    "PaystackWebhookEvent",
 ]
