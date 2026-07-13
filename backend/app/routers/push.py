@@ -14,6 +14,7 @@ from app.schemas.push import (
     UserTimezoneUpdate,
     VapidPublicKeyResponse,
 )
+from app.services.cron_logging import finish_cron_run, list_cron_runs, start_cron_run
 from app.services.engagement_notifications import run_engagement_cron
 from app.services.notification_preferences import get_or_create_preferences
 from datetime import datetime, timezone
@@ -134,6 +135,13 @@ def cron_engagement_notifications(
     if not settings.cron_secret or x_cron_secret != settings.cron_secret:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
-    counts = run_engagement_cron(db)
+    run = start_cron_run(db, "engagement_notifications")
+    try:
+        counts = run_engagement_cron(db)
+        finish_cron_run(db, run, details=counts)
+    except Exception as exc:
+        finish_cron_run(db, run, details={}, error=str(exc))
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Cron job failed") from exc
     db.commit()
-    return {"status": "ok", "sent": counts}
+    return {"status": "ok", "sent": counts, "run_id": run.id}

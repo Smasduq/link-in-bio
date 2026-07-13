@@ -20,7 +20,8 @@ from app.services.click_context import get_client_ip, hash_visitor_ip, parse_dev
 from app.services.click_tracking import record_link_click
 from app.services.avatar import resolve_profile_avatar_url
 from app.services.premium_access import get_premium_status, sanitize_theme_for_public, user_is_premium
-from app.services.geoip import lookup_country_code
+from app.schemas.report import PublicReportRequest
+from app.services.admin_content import create_report
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -119,7 +120,7 @@ def _serialize_public_profile(db: Session, profile: Profile, links: list[Link], 
     user = profile.user
     is_premium = user_is_premium(user, db) if user else False
     raw_theme = profile.theme_settings or {}
-    safe_theme = sanitize_theme_for_public(raw_theme, is_premium=is_premium)
+    safe_theme = sanitize_theme_for_public(raw_theme, is_premium=is_premium, db=db)
     capture_enabled, capture_heading = _public_email_capture(db, profile)
     layout_mode = effective_layout_mode(profile, user, db)
 
@@ -150,6 +151,7 @@ def _serialize_public_profile(db: Session, profile: Profile, links: list[Link], 
     )
 
     return PublicPageResponse(
+        profile_id=profile.id,
         username=profile.username,
         full_name=profile.full_name,
         bio=profile.bio,
@@ -195,6 +197,10 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
 
+    user = profile.user
+    if user and (user.deleted_at is not None or user.is_suspended):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+
     links = (
         db.query(Link)
         .filter(Link.user_id == profile.user_id, Link.is_active.is_(True))
@@ -232,3 +238,15 @@ def track_link_click_public(
     db: Session = Depends(get_db),
 ):
     record_link_click(db, link_id, request, payload.referrer)
+
+
+@router.post("/report", status_code=status.HTTP_201_CREATED)
+def submit_content_report(payload: PublicReportRequest, db: Session = Depends(get_db)):
+    report = create_report(
+        db,
+        reporter_email=payload.reporter_email,
+        target_type=payload.target_type,
+        target_id=payload.target_id,
+        reason=payload.reason,
+    )
+    return {"id": report.id, "message": "Report submitted. Thank you."}

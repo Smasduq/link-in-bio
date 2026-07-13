@@ -9,6 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.services.billing import get_current_user_premium_status
+from app.services.feature_flags import (
+    get_free_product_limit,
+    get_pro_background_types,
+    get_pro_button_styles,
+    get_pro_preset_ids,
+)
 
 FREE_BACKGROUND_TYPES = frozenset({"solid"})
 PRO_BACKGROUND_TYPES = frozenset({"gradient", "pattern", "image"})
@@ -83,7 +89,7 @@ def assert_can_create_product(user: User, db: Session, profile_id: str, *, curre
             db.query(func.count(Product.id)).filter(Product.profile_id == profile_id).scalar() or 0
         )
 
-    if count >= FREE_PRODUCT_LIMIT:
+    if count >= get_free_product_limit(db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Free plan allows only 1 product. Upgrade to Pro for unlimited products.",
@@ -98,17 +104,22 @@ def _normalize_button_style(raw: str | None) -> str | None:
     return raw
 
 
-def theme_uses_pro_features(theme: dict[str, Any]) -> bool:
+def theme_uses_pro_features(theme: dict[str, Any], db: Session | None = None) -> bool:
+    pro_preset_ids = get_pro_preset_ids(db) if db else PREMIUM_PRESET_IDS
+    pro_background_types = get_pro_background_types(db) if db else PRO_BACKGROUND_TYPES
+    pro_button_styles = get_pro_button_styles(db) if db else PRO_BUTTON_STYLES
+
     preset_id = theme.get("presetId")
-    if preset_id and preset_id in PREMIUM_PRESET_IDS:
+    if preset_id and preset_id in pro_preset_ids:
         return True
 
-    if theme.get("backgroundType", "solid") in PRO_BACKGROUND_TYPES:
+    if theme.get("backgroundType", "solid") in pro_background_types:
         return True
 
     button_style = _normalize_button_style(theme.get("buttonStyle"))
     if button_style and button_style not in FREE_BUTTON_STYLES:
-        return True
+        if button_style in pro_button_styles or button_style not in FREE_BUTTON_STYLES:
+            return True
 
     if theme.get("signatureEffect"):
         return True
@@ -121,8 +132,8 @@ def theme_uses_pro_features(theme: dict[str, Any]) -> bool:
     return False
 
 
-def validate_theme_settings(theme: dict[str, Any], *, is_premium: bool) -> None:
-    if is_premium or not theme_uses_pro_features(theme):
+def validate_theme_settings(theme: dict[str, Any], *, is_premium: bool, db: Session | None = None) -> None:
+    if is_premium or not theme_uses_pro_features(theme, db):
         return
 
     raise HTTPException(
@@ -131,10 +142,10 @@ def validate_theme_settings(theme: dict[str, Any], *, is_premium: bool) -> None:
     )
 
 
-def sanitize_theme_for_public(theme: dict[str, Any], *, is_premium: bool) -> dict[str, Any]:
+def sanitize_theme_for_public(theme: dict[str, Any], *, is_premium: bool, db: Session | None = None) -> dict[str, Any]:
     if is_premium:
         return theme
-    if not theme_uses_pro_features(theme):
+    if not theme_uses_pro_features(theme, db):
         return theme
     return dict(DEFAULT_FREE_THEME)
 

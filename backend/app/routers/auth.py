@@ -121,11 +121,15 @@ def register_verify(
     return _auth_response(user)
 
 
+def _user_response(user: User) -> UserResponse:
+    return UserResponse(id=user.id, email=user.email, name=user.name, role=user.role)
+
+
 def _auth_response(user: User) -> AuthResponse:
     token = create_access_token(user.id)
     return AuthResponse(
         access_token=token,
-        user=UserResponse(id=user.id, email=user.email, name=user.name),
+        user=_user_response(user),
     )
 
 
@@ -192,7 +196,7 @@ def resend_otp(
 
 @router.get("/me", response_model=UserResponse)
 def me(current_user: User = Depends(get_current_user)):
-    return UserResponse(id=current_user.id, email=current_user.email, name=current_user.name)
+    return _user_response(current_user)
 
 
 @router.post("/forgot-password", response_model=MessageResponse)

@@ -26,6 +26,7 @@ class ProductPurchase(Base):
         DateTime(timezone=True), nullable=True
     )
     download_flagged: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    refund_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     product: Mapped["Product"] = relationship("Product", back_populates="purchases")

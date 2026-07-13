@@ -143,6 +143,7 @@ export type AnalyticsResponse = {
 };
 
 export type PublicProfile = {
+  profile_id: string;
   username: string;
   full_name: string | null;
   bio: string | null;

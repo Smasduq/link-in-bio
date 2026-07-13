@@ -36,6 +36,10 @@ class User(Base):
     is_trial: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     trial_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="user", server_default="user")
+    is_suspended: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    suspended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     profile: Mapped["Profile"] = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -44,3 +48,11 @@ class User(Base):
     @property
     def is_email_verified(self) -> bool:
         return self.email_verified_at is not None
+
+    @property
+    def is_staff(self) -> bool:
+        return self.role in {"support", "admin"}
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
