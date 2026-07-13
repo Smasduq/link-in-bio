@@ -92,11 +92,8 @@ export function NotificationBell() {
               ref={panelRef}
               className={cn(
                 "fixed z-[80] flex flex-col overflow-hidden border border-border bg-card shadow-lg",
-                "max-md:left-[max(0.75rem,env(safe-area-inset-left,0px))]",
-                "max-md:right-[max(0.75rem,env(safe-area-inset-right,0px))]",
-                "max-md:bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px)+0.5rem)]",
-                "max-md:max-h-[min(70dvh,28rem)] max-md:rounded-xl",
-                "md:inset-x-auto md:bottom-auto md:max-h-80 md:rounded-xl md:w-72 lg:w-80"
+                "inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] max-h-[min(70dvh,32rem)] rounded-t-2xl border-b-0 shadow-2xl",
+                "md:inset-x-auto md:bottom-auto md:left-auto md:max-h-80 md:rounded-xl md:border-b md:shadow-lg md:w-72 lg:w-80"
               )}
               style={
                 desktopCoords
