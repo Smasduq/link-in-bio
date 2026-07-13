@@ -57,6 +57,8 @@ def authenticate_user(db: Session, identifier: str, password: str) -> User | Non
 
     if not user or not verify_password(password, user.password_hash):
         return None
+    if user.deleted_at is not None or user.is_suspended:
+        return None
     return user
 
 

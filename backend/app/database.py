@@ -374,6 +374,40 @@ def _migrate_content_layout_schema(conn, is_sqlite: bool) -> None:
         conn.execute(text("ALTER TABLE products ADD COLUMN position INTEGER NOT NULL DEFAULT 0"))
 
 
+def _migrate_users_admin_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+        names = {row[1] for row in columns}
+        additions = [
+            ("role", "ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'"),
+            ("is_suspended", "ALTER TABLE users ADD COLUMN is_suspended BOOLEAN NOT NULL DEFAULT 0"),
+            ("suspended_at", "ALTER TABLE users ADD COLUMN suspended_at DATETIME"),
+            ("deleted_at", "ALTER TABLE users ADD COLUMN deleted_at DATETIME"),
+        ]
+        for column, ddl in additions:
+            if column not in names:
+                conn.execute(text(ddl))
+        return
+
+    for column, ddl in (
+        ("role", "ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'"),
+        ("is_suspended", "ALTER TABLE users ADD COLUMN is_suspended BOOLEAN NOT NULL DEFAULT false"),
+        ("suspended_at", "ALTER TABLE users ADD COLUMN suspended_at TIMESTAMPTZ"),
+        ("deleted_at", "ALTER TABLE users ADD COLUMN deleted_at TIMESTAMPTZ"),
+    ):
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = :column
+                """
+            ),
+            {"column": column},
+        ).fetchone()
+        if not row:
+            conn.execute(text(ddl))
+
+
 def _migrate_postgres_schema() -> None:
     if _is_sqlite:
         return
@@ -408,6 +442,7 @@ def _migrate_postgres_schema() -> None:
         _migrate_push_engagement_schema(conn, is_sqlite=False)
         _migrate_product_purchases_schema(conn, is_sqlite=False)
         _migrate_content_layout_schema(conn, is_sqlite=False)
+        _migrate_users_admin_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -437,3 +472,4 @@ def _migrate_sqlite_schema() -> None:
         _migrate_push_engagement_schema(conn, is_sqlite=True)
         _migrate_product_purchases_schema(conn, is_sqlite=True)
         _migrate_content_layout_schema(conn, is_sqlite=True)
+        _migrate_users_admin_schema(conn, is_sqlite=True)

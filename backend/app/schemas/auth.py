@@ -33,6 +33,7 @@ class UserResponse(BaseModel):
     id: str
     email: str
     name: str | None = None
+    role: str = "user"
 
     model_config = {"from_attributes": True}
 

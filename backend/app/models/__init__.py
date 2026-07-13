@@ -1,3 +1,4 @@
+from app.models.admin_audit_log import AdminAuditLog
 from app.models.analytics import LinkClick, PageView
 from app.models.billing_event import BillingEvent
 from app.models.billing_plan import BillingPlanRecord
@@ -31,4 +32,5 @@ __all__ = [
     "Product",
     "ProductPurchase",
     "Subscriber",
+    "AdminAuditLog",
 ]

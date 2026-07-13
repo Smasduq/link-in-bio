@@ -195,6 +195,10 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
 
+    user = profile.user
+    if user and (user.deleted_at is not None or user.is_suspended):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+
     links = (
         db.query(Link)
         .filter(Link.user_id == profile.user_id, Link.is_active.is_(True))
