@@ -2,6 +2,7 @@ export type UpgradeSaveContext =
   | "profile"
   | "avatar"
   | "theme"
+  | "layout"
   | "link"
   | "embed"
   | "product"
@@ -46,6 +47,17 @@ export const UPGRADE_PROMPTS: Record<UpgradeSaveContext, UpgradePromptContent> =
       "Glass, pill & square button styles",
       "Gradient, pattern & image backgrounds",
       "Full Google Fonts library",
+    ],
+  },
+  layout: {
+    savedLabel: "Layout updated!",
+    title: "Arrange your page your way",
+    description:
+      "Freeform mixed ordering lets you drag links, products, embeds, and newsletter blocks into one custom sequence.",
+    benefits: [
+      "Mix all block types in any order",
+      "Highlight your best content first",
+      "Premium themes & button styles to match",
     ],
   },
   link: {
