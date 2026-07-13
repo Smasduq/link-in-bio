@@ -73,6 +73,7 @@ app.include_router(content.router, prefix="/api")
 app.include_router(downloads.router, prefix="/api")
 app.include_router(sales.router, prefix="/api")
 app.include_router(subscribers.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 
 if settings.dev_routes_enabled:
     app.include_router(dev.router, prefix="/api")
