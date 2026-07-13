@@ -224,7 +224,7 @@ function AnalyticsChart({
               role="tab"
               aria-selected={period === p.id}
               aria-disabled={locked}
-              title={locked ? "Upgrade to Pro for 7, 30 & 90 day analytics" : undefined}
+              title={locked ? "Try Pro free for 7, 30 & 90 day analytics" : undefined}
               className={`lb-analytics__tab ${period === p.id ? "is-active" : ""}${locked ? " lb-analytics__tab--locked" : ""}`}
               onClick={() => {
                 if (locked) {
@@ -552,7 +552,7 @@ export function DashboardOverview({ profile, links, analytics }: DashboardOvervi
                 <div className="lb-stat__main">
                   <p className="lb-stat__label">Unique visitors</p>
                   <Link href="/upgrade" className="lb-section__link" style={{ marginTop: "0.5rem", display: "inline-block" }}>
-                    Unlock with Pro →
+                    Try Pro for free →
                   </Link>
                 </div>
               </div>

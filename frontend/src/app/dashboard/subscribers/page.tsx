@@ -5,7 +5,7 @@ import { Download } from "lucide-react";
 import Link from "next/link";
 import { apiFetch, API_URL } from "@/lib/api";
 import { getStoredAuthToken } from "@/lib/auth-token";
-import type { BillingStatus } from "@/lib/plans";
+import { getProCtaLabel, type BillingStatus } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoader } from "@/components/ui/spinner";
@@ -58,7 +58,7 @@ export default function SubscribersPage() {
           <CardContent className="py-12 text-center">
             <p className="text-sm text-muted-foreground">Email capture and subscriber export are Pro features.</p>
             <Link href="/upgrade" className="mt-4 inline-flex">
-              <Button>Upgrade to Pro</Button>
+              <Button>{getProCtaLabel(billing?.trial_used)}</Button>
             </Link>
           </CardContent>
         </Card>

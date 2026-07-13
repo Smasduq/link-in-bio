@@ -97,7 +97,7 @@ export function ProductsEditor() {
         {!allowNewProduct ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <Crown className="h-4 w-4 text-amber-600" />
-            Free plan includes 1 product. Upgrade for unlimited.
+            Free plan includes 1 product. Try Pro free for unlimited.
           </p>
         ) : (
           <span />
@@ -110,7 +110,7 @@ export function ProductsEditor() {
       {!allowNewProduct ? (
         <ProUpgradeCta
           title="Need more products?"
-          description="Upgrade to Pro to sell unlimited digital products on your page."
+          description="Try Pro free to sell unlimited digital products on your page."
         />
       ) : null}
 

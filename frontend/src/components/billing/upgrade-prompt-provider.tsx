@@ -8,6 +8,7 @@ import {
   shouldShowUpgradePrompt,
   type UpgradeSaveContext,
 } from "@/lib/upgrade-prompts";
+import { useProCta } from "@/lib/use-pro-cta";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 
@@ -30,6 +31,7 @@ export function UpgradePromptProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({ promptAfterSave }), [promptAfterSave]);
   const content = UPGRADE_PROMPTS[context];
+  const { label: ctaLabel } = useProCta();
 
   return (
     <UpgradePromptContext.Provider value={value}>
@@ -60,7 +62,7 @@ export function UpgradePromptProvider({ children }: { children: ReactNode }) {
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link href="/upgrade" className="flex-1" onClick={() => setOpen(false)}>
-              <Button className="w-full">Upgrade to Pro</Button>
+              <Button className="w-full">{ctaLabel}</Button>
             </Link>
             <Button variant="ghost" className="flex-1" onClick={() => setOpen(false)}>
               Keep building free

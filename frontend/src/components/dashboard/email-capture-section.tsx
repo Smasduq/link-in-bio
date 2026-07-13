@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Crown, Mail } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import type { BillingStatus } from "@/lib/plans";
+import { getProCtaLabel, type BillingStatus } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,7 +67,7 @@ export function EmailCaptureSection({ enabled, heading, onChange }: EmailCapture
               Collect emails from visitors with a newsletter block on your profile.
             </p>
             <Link href="/upgrade" className="mt-3 inline-flex">
-              <Button size="sm">Upgrade to Pro</Button>
+              <Button size="sm">{getProCtaLabel(billing?.trial_used)}</Button>
             </Link>
           </div>
         ) : (

@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { isPremiumFromProfile } from "@/lib/premium-features";
 import type { LayoutMode, Profile } from "@/types/database";
 import { useUpgradeAfterSave } from "@/components/billing/upgrade-prompt-provider";
+import { useProCta } from "@/lib/use-pro-cta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ const OPTIONS: { id: LayoutMode; title: string; description: string; icon: typeo
 export function LayoutSettings({ profile, onUpdated }: LayoutSettingsProps) {
   const isPremium = isPremiumFromProfile(profile);
   const promptUpgrade = useUpgradeAfterSave(isPremium);
+  const { label: ctaLabel } = useProCta();
   const storedMode = profile.layout_mode ?? "grouped";
   const currentMode = isPremium ? storedMode : "grouped";
 
@@ -99,7 +101,7 @@ export function LayoutSettings({ profile, onUpdated }: LayoutSettingsProps) {
         </div>
         {!isPremium ? (
           <Button variant="outline" size="sm" onClick={() => promptUpgrade("layout")}>
-            Upgrade to unlock freeform layout
+            {ctaLabel}
           </Button>
         ) : null}
       </CardContent>

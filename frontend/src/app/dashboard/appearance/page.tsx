@@ -112,8 +112,8 @@ export default function AppearancePage() {
 
       {!isPremium ? (
         <ProUpgradeCta
-          title="Unlock premium themes & styling"
-          description="Pro includes all presets, glass buttons, gradient backgrounds, full font library, and removing the Powered by badge."
+          title="Try Pro free for premium themes"
+          description="Start a free trial for all presets, glass buttons, gradient backgrounds, the full font library, and removing the Powered by badge."
         />
       ) : null}
 

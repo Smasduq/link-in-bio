@@ -12,7 +12,8 @@ import {
   type PlanPricingItem,
   type PlanPricingResponse,
   formatNgn,
-  PRO_UPGRADE_HIGHLIGHT,
+  getProCtaLabel,
+  getProUpgradeHighlight,
 } from "@/lib/plans";
 import { CancelSubscriptionModal, formatBillingDate } from "@/components/billing/cancel-subscription-modal";
 import { PlanFeaturesList } from "@/components/billing/plan-features-list";
@@ -134,11 +135,14 @@ export function BillingPageContent() {
             {viewState === "free" ? (
               <>
                 <p className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm leading-relaxed text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
-                  <Sparkles className="mb-1 inline h-4 w-4 text-emerald-600" aria-hidden /> {PRO_UPGRADE_HIGHLIGHT}
+                  <Sparkles className="mb-1 inline h-4 w-4 text-emerald-600" aria-hidden />{" "}
+                  {getProUpgradeHighlight(billing?.trial_used)}
                 </p>
                 <Link href="/upgrade">
                   <Button className="w-full sm:w-auto">
-                    Upgrade to Pro — {formatNgn(monthlyTotal, 2)}/month
+                    {billing?.trial_used
+                      ? `Upgrade to Pro — ${formatNgn(monthlyTotal, 2)}/month`
+                      : "Try Pro for free"}
                   </Button>
                 </Link>
               </>

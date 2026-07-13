@@ -24,7 +24,7 @@ import {
   type StartTrialResponse,
   formatNgn,
   FEATURES,
-  PRO_UPGRADE_HIGHLIGHT,
+  getProUpgradeHighlight,
 } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
@@ -150,9 +150,11 @@ export default function UpgradePageClient() {
             <Sparkles className="h-3.5 w-3.5" />
             Pro
           </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Upgrade to Pro</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            {canStartTrial ? "Try Pro for free" : "Upgrade to Pro"}
+          </h1>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            {PRO_UPGRADE_HIGHLIGHT}
+            {getProUpgradeHighlight(billing?.trial_used)}
           </p>
         </div>
 

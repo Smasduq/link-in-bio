@@ -14,6 +14,17 @@ from app.services.paystack import create_paystack_plan, get_paystack_plan_amount
 
 logger = logging.getLogger(__name__)
 
+_PLAN_MODEL_KEYS = frozenset({
+    "slug",
+    "name",
+    "interval",
+    "base_amount",
+    "service_fee",
+    "vat_on_fee",
+    "total_charge",
+    "total_charge_kobo",
+})
+
 PLAN_DEFINITIONS: tuple[dict[str, Any], ...] = (
     {
         "slug": "monthly",
@@ -57,6 +68,11 @@ def _pricing_row(slug: str, name: str, interval: str, base_amount: float) -> dic
     return row
 
 
+def _plan_model_fields(row: dict[str, Any]) -> dict[str, Any]:
+    """Fields persisted on BillingPlanRecord — excludes computed yearly savings."""
+    return {key: row[key] for key in _PLAN_MODEL_KEYS}
+
+
 def upsert_local_plans(db: Session) -> list[BillingPlanRecord]:
     records: list[BillingPlanRecord] = []
 
@@ -67,12 +83,13 @@ def upsert_local_plans(db: Session) -> list[BillingPlanRecord]:
             definition["interval"],
             float(definition["base_amount"]()),
         )
+        model_fields = _plan_model_fields(row)
         record = db.query(BillingPlanRecord).filter(BillingPlanRecord.slug == row["slug"]).first()
         if record is None:
-            record = BillingPlanRecord(**row)
+            record = BillingPlanRecord(**model_fields)
             db.add(record)
         else:
-            for key, value in row.items():
+            for key, value in model_fields.items():
                 setattr(record, key, value)
         records.append(record)
 

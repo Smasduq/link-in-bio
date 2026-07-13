@@ -11,24 +11,53 @@ logger = logging.getLogger(__name__)
 
 _SERVICES_DIR = Path(__file__).resolve().parent
 _BACKEND_ROOT = _SERVICES_DIR.parent.parent
+_REPO_ROOT = _BACKEND_ROOT.parent
 _DEFAULT_DB_PATH = _SERVICES_DIR / "GeoLite2-Country.mmdb"
+_DB_FILENAME = "GeoLite2-Country.mmdb"
 
 _reader: "geoip2.database.Reader | None" = None
 _reader_path: Path | None = None
 
 
-def resolve_geolite2_db_path() -> Path:
-    """Return an absolute path to GeoLite2-Country.mmdb."""
+def _candidate_db_paths() -> list[Path]:
+    """Search paths for GeoLite2-Country.mmdb (local dev + Vercel/serverless layouts)."""
     configured = (settings.geolite2_country_path or "").strip()
+    candidates: list[Path] = []
+
     if configured:
         path = Path(configured).expanduser()
         if not path.is_absolute():
             path = (_BACKEND_ROOT / path).resolve()
         else:
             path = path.resolve()
-        return path
+        candidates.append(path)
 
-    return _DEFAULT_DB_PATH.resolve()
+    candidates.extend(
+        [
+            _DEFAULT_DB_PATH.resolve(),
+            (_BACKEND_ROOT / "files" / _DB_FILENAME).resolve(),
+            (_REPO_ROOT / "files" / _DB_FILENAME).resolve(),
+            (Path("/var/task") / "files" / _DB_FILENAME).resolve(),
+            (Path("/var/task") / "backend" / "files" / _DB_FILENAME).resolve(),
+            (Path("/var/task") / "app" / "services" / _DB_FILENAME).resolve(),
+        ]
+    )
+
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for candidate in candidates:
+        if candidate not in seen:
+            seen.add(candidate)
+            unique.append(candidate)
+    return unique
+
+
+def resolve_geolite2_db_path() -> Path:
+    """Return the first existing GeoLite2-Country.mmdb path, or the preferred default."""
+    for candidate in _candidate_db_paths():
+        if candidate.is_file():
+            return candidate
+    return _candidate_db_paths()[0]
 
 
 def init_geoip() -> "geoip2.database.Reader | None":
@@ -42,11 +71,13 @@ def init_geoip() -> "geoip2.database.Reader | None":
     _reader_path = db_path
 
     if not db_path.is_file():
+        searched = ", ".join(str(path) for path in _candidate_db_paths()[:6])
         logger.warning(
             "GeoLite2-Country database not found at %s — country lookup disabled. "
-            "Set GEOLITE2_COUNTRY_PATH or copy GeoLite2-Country.mmdb to %s",
+            "Set GEOLITE2_COUNTRY_PATH or place %s in backend/files/ or repo files/. Searched: %s",
             db_path,
-            _DEFAULT_DB_PATH,
+            _DB_FILENAME,
+            searched,
         )
         return None
 

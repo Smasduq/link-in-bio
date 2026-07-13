@@ -7,6 +7,7 @@ import { THEME_PRESETS } from "@/lib/theme-presets";
 import { normalizeTheme } from "@/lib/profile-theme";
 import { ThemePresetSwatch } from "@/components/dashboard/profile-live-preview";
 import { Button } from "@/components/ui/button";
+import { getProCtaLabel } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
 type ThemePresetPickerProps = {
@@ -70,7 +71,7 @@ export function ThemePresetPicker({ theme, onSelect, isPremium = false }: ThemeP
       {!isPremium ? (
         <Link href="/upgrade">
           <Button size="sm" variant="outline" className="w-full sm:w-auto">
-            Upgrade to unlock presets
+            {getProCtaLabel()} — unlock presets
           </Button>
         </Link>
       ) : null}

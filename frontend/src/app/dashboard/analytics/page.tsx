@@ -107,8 +107,8 @@ export default function AnalyticsPage() {
 
       {!isPremium ? (
         <ProUpgradeCta
-          title="Unlock 7, 30 & 90 day analytics"
-          description="Free includes today&apos;s stats. Upgrade for weekly and monthly trends, unique visitors, referrers, and visitor insights."
+          title="Try Pro free for deeper analytics"
+          description="Free includes today&apos;s stats. Start a free trial for weekly and monthly trends, unique visitors, referrers, and visitor insights."
         />
       ) : null}
 
@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
           {!isPremium ? (
             <ProUpgradeCta
               title="See the full picture over time"
-              description="Upgrade to compare 7, 30, and 90 day performance and spot trends."
+              description="Try Pro free to compare 7, 30, and 90 day performance and spot trends."
             />
           ) : null}
 

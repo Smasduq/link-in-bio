@@ -35,6 +35,26 @@ export const FEATURES = PLAN_FEATURES;
 export const PRO_UPGRADE_HIGHLIGHT =
   "See exactly where your visitors come from and when they're most active — unlock with Pro";
 
+export const PRO_UPGRADE_HIGHLIGHT_TRIAL =
+  "See exactly where your visitors come from and when they're most active — try Pro free for 30 days";
+
+export const PRO_CTA_TRY_FREE = "Try Pro for free";
+export const PRO_CTA_UPGRADE = "Upgrade to Pro";
+
+export function getProCtaLabel(trialUsed?: boolean | null): string {
+  return trialUsed ? PRO_CTA_UPGRADE : PRO_CTA_TRY_FREE;
+}
+
+export function getProCtaDescription(trialUsed?: boolean | null): string {
+  return trialUsed
+    ? "Upgrade to access this feature on your page."
+    : "Start your 30-day free trial — card required, cancel anytime.";
+}
+
+export function getProUpgradeHighlight(trialUsed?: boolean | null): string {
+  return trialUsed ? PRO_UPGRADE_HIGHLIGHT : PRO_UPGRADE_HIGHLIGHT_TRIAL;
+}
+
 export const FREE_THEME_PRESET_IDS = new Set<string>();
 export const PRO_ONLY_BUTTON_STYLES = new Set(["glass", "rounded", "square"]);
 export const PRO_ONLY_BACKGROUND_TYPES = new Set(["gradient", "pattern", "image"]);
