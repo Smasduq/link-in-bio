@@ -24,6 +24,7 @@ from app.schemas.admin import (
     AdminReportListResponse,
     AdminSubscriptionItem,
     AdminSubscriptionListResponse,
+    AdminSuspendRequest,
     AdminTransactionItem,
     AdminTransactionListResponse,
     AdminUserDetailResponse,
@@ -106,8 +107,6 @@ def admin_grant_pro(
         admin=admin,
         user_id=user_id,
         reason=payload.reason,
-        plan=payload.plan,
-        days=payload.days,
     )
     return AdminActionResponse(message="Pro access granted", data=result)
 
@@ -120,17 +119,26 @@ def admin_revoke_pro(
     admin: User = Depends(get_current_admin),
 ):
     result = revoke_pro(db, admin=admin, user_id=user_id, reason=payload.reason)
-    return AdminActionResponse(message="Pro access revoked", data=result)
+    message = "Pro access revoked"
+    if result.get("warning"):
+        message = f"{message}. {result['warning']}"
+    return AdminActionResponse(message=message, data=result)
 
 
 @router.post("/users/{user_id}/suspend", response_model=AdminActionResponse)
 def admin_suspend_user(
     user_id: str,
-    payload: AdminActionRequest,
+    payload: AdminSuspendRequest,
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
-    result = suspend_user(db, admin=admin, user_id=user_id, reason=payload.reason)
+    result = suspend_user(
+        db,
+        admin=admin,
+        user_id=user_id,
+        reason=payload.reason,
+        disable_public_profile=payload.disable_public_profile,
+    )
     return AdminActionResponse(message="Account suspended", data=result)
 
 

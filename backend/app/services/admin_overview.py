@@ -54,6 +54,8 @@ def get_overview_metrics(db: Session) -> dict:
         status = get_current_user_premium_status(user)
         if not status["is_premium"]:
             continue
+        if user.manual_pro_grant:
+            continue
         plan = status.get("plan") or user.premium_plan
         if plan == "monthly":
             mrr += plan_charges.get("monthly", 0.0)

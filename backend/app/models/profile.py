@@ -34,6 +34,7 @@ class Profile(Base):
     announcement_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     announcement_text: Mapped[str | None] = mapped_column(String(150), nullable=True)
     layout_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="grouped", server_default="grouped")
+    profile_disabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     email_capture_position: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     theme_settings: Mapped[dict] = mapped_column(JSON, default=DEFAULT_THEME, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

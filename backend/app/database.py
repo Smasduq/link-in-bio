@@ -382,6 +382,9 @@ def _migrate_users_admin_schema(conn, is_sqlite: bool) -> None:
             ("role", "ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'"),
             ("is_suspended", "ALTER TABLE users ADD COLUMN is_suspended BOOLEAN NOT NULL DEFAULT 0"),
             ("suspended_at", "ALTER TABLE users ADD COLUMN suspended_at DATETIME"),
+            ("suspended_reason", "ALTER TABLE users ADD COLUMN suspended_reason VARCHAR(500)"),
+            ("manual_pro_grant", "ALTER TABLE users ADD COLUMN manual_pro_grant BOOLEAN NOT NULL DEFAULT 0"),
+            ("manual_pro_reason", "ALTER TABLE users ADD COLUMN manual_pro_reason VARCHAR(500)"),
             ("deleted_at", "ALTER TABLE users ADD COLUMN deleted_at DATETIME"),
         ]
         for column, ddl in additions:
@@ -393,6 +396,9 @@ def _migrate_users_admin_schema(conn, is_sqlite: bool) -> None:
         ("role", "ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'"),
         ("is_suspended", "ALTER TABLE users ADD COLUMN is_suspended BOOLEAN NOT NULL DEFAULT false"),
         ("suspended_at", "ALTER TABLE users ADD COLUMN suspended_at TIMESTAMPTZ"),
+        ("suspended_reason", "ALTER TABLE users ADD COLUMN suspended_reason VARCHAR(500)"),
+        ("manual_pro_grant", "ALTER TABLE users ADD COLUMN manual_pro_grant BOOLEAN NOT NULL DEFAULT false"),
+        ("manual_pro_reason", "ALTER TABLE users ADD COLUMN manual_pro_reason VARCHAR(500)"),
         ("deleted_at", "ALTER TABLE users ADD COLUMN deleted_at TIMESTAMPTZ"),
     ):
         row = conn.execute(
@@ -406,6 +412,26 @@ def _migrate_users_admin_schema(conn, is_sqlite: bool) -> None:
         ).fetchone()
         if not row:
             conn.execute(text(ddl))
+
+
+def _migrate_profiles_admin_schema(conn, is_sqlite: bool) -> None:
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(profiles)")).fetchall()
+        names = {row[1] for row in columns}
+        if "profile_disabled" not in names:
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN profile_disabled BOOLEAN NOT NULL DEFAULT 0"))
+        return
+
+    row = conn.execute(
+        text(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'profiles' AND column_name = 'profile_disabled'
+            """
+        )
+    ).fetchone()
+    if not row:
+        conn.execute(text("ALTER TABLE profiles ADD COLUMN profile_disabled BOOLEAN NOT NULL DEFAULT false"))
 
 
 def _migrate_product_purchases_refund_schema(conn, is_sqlite: bool) -> None:
@@ -463,6 +489,7 @@ def _migrate_postgres_schema() -> None:
         _migrate_product_purchases_schema(conn, is_sqlite=False)
         _migrate_content_layout_schema(conn, is_sqlite=False)
         _migrate_users_admin_schema(conn, is_sqlite=False)
+        _migrate_profiles_admin_schema(conn, is_sqlite=False)
         _migrate_product_purchases_refund_schema(conn, is_sqlite=False)
 
 
@@ -494,4 +521,5 @@ def _migrate_sqlite_schema() -> None:
         _migrate_product_purchases_schema(conn, is_sqlite=True)
         _migrate_content_layout_schema(conn, is_sqlite=True)
         _migrate_users_admin_schema(conn, is_sqlite=True)
+        _migrate_profiles_admin_schema(conn, is_sqlite=True)
         _migrate_product_purchases_refund_schema(conn, is_sqlite=True)

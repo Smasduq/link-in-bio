@@ -76,8 +76,11 @@ class AdminActionRequest(BaseModel):
 
 
 class AdminGrantProRequest(AdminActionRequest):
-    plan: Literal["monthly", "yearly"] = "monthly"
-    days: int | None = Field(default=None, ge=1, le=3650)
+    pass
+
+
+class AdminSuspendRequest(AdminActionRequest):
+    disable_public_profile: bool = False
 
 
 class AdminDeleteUserRequest(AdminActionRequest):

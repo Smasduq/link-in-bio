@@ -32,7 +32,10 @@ def get_current_user(
     if user.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account has been deleted")
     if user.is_suspended:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is suspended")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been suspended - contact support",
+        )
     return user
 
 

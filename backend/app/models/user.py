@@ -39,6 +39,9 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="user", server_default="user")
     is_suspended: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     suspended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    suspended_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    manual_pro_grant: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    manual_pro_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

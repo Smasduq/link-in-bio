@@ -149,6 +149,13 @@ def complete_login(db: Session, challenge: OtpChallenge) -> User:
     user = db.query(User).filter(User.id == challenge.user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found")
+    if user.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account has been deleted")
+    if user.is_suspended:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been suspended - contact support",
+        )
 
     if not user.email_verified_at:
         user.email_verified_at = datetime.now(timezone.utc)
