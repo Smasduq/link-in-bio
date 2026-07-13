@@ -21,7 +21,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Link as LinkIcon, Mail, Play, Plus, ShoppingBag } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import type { ContentBlockType, Link, Profile } from "@/types/database";
+import type { ContentBlockType, Link as LinkRecord, Profile } from "@/types/database";
 import type { Product } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,7 +72,7 @@ function SortableUnifiedItem({ item }: { item: UnifiedItem }) {
   );
 }
 
-function buildItems(profile: Profile, links: Link[], products: Product[]): UnifiedItem[] {
+function buildItems(profile: Profile, links: LinkRecord[], products: Product[]): UnifiedItem[] {
   const items: UnifiedItem[] = [];
 
   for (const link of links.filter((entry) => entry.type === "link")) {
@@ -117,7 +117,7 @@ function buildItems(profile: Profile, links: Link[], products: Product[]): Unifi
 
 export function UnifiedContentEditor() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [links, setLinks] = useState<Link[]>([]);
+  const [links, setLinks] = useState<LinkRecord[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [items, setItems] = useState<UnifiedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,7 +131,7 @@ export function UnifiedContentEditor() {
   const load = useCallback(async () => {
     const [profileData, linksData, productsData] = await Promise.all([
       apiFetch<Profile>("/api/profile"),
-      apiFetch<Link[]>("/api/links"),
+      apiFetch<LinkRecord[]>("/api/links"),
       apiFetch<Product[]>("/api/products"),
     ]);
     setProfile(profileData);
