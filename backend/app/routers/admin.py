@@ -15,6 +15,7 @@ from app.schemas.admin import (
     AdminFeatureFlagListResponse,
     AdminFeatureFlagUpdateRequest,
     AdminGrantProRequest,
+    AdminMarkWithdrawalPaidRequest,
     AdminOverviewResponse,
     AdminProductItem,
     AdminProductListResponse,
@@ -32,6 +33,8 @@ from app.schemas.admin import (
     AdminUserListResponse,
     AdminWebhookEventItem,
     AdminWebhookListResponse,
+    AdminWithdrawalItem,
+    AdminWithdrawalListResponse,
 )
 from app.services.admin_billing import (
     list_subscriptions,
@@ -391,4 +394,147 @@ def admin_update_feature_flag(
         value=flag.value,
         description=flag.description,
         updated_at=flag.updated_at,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Withdrawal requests
+# ---------------------------------------------------------------------------
+
+def _working_days_elapsed(from_dt: "datetime") -> int:
+    """Count business days (Mon–Fri) between from_dt and now (UTC)."""
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    if from_dt.tzinfo is None:
+        from_dt = from_dt.replace(tzinfo=timezone.utc)
+    count = 0
+    cursor = from_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    while cursor < today:
+        cursor += timedelta(days=1)
+        if cursor.weekday() < 5:  # Mon=0 … Fri=4
+            count += 1
+    return count
+
+
+def _serialize_withdrawal(w, user_email: str | None, username: str | None) -> AdminWithdrawalItem:
+    return AdminWithdrawalItem(
+        id=w.id,
+        user_id=w.user_id,
+        user_email=user_email,
+        username=username,
+        amount=float(w.amount),
+        bank_name=w.bank_name,
+        account_number=w.account_number,
+        account_name=w.account_name,
+        status=w.status,
+        requested_at=w.requested_at,
+        paid_at=w.paid_at,
+        admin_note=w.admin_note,
+        working_days_elapsed=_working_days_elapsed(w.requested_at),
+    )
+
+
+@router.get("/withdrawals", response_model=AdminWithdrawalListResponse)
+def admin_list_withdrawals(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    status_filter: str | None = Query(None, pattern="^(pending|paid)$"),
+    db: Session = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+):
+    from app.models.withdrawal_request import WithdrawalRequest
+    from app.models.profile import Profile
+
+    q = db.query(WithdrawalRequest)
+    if status_filter:
+        q = q.filter(WithdrawalRequest.status == status_filter)
+    total = q.count()
+    rows = (
+        q.order_by(WithdrawalRequest.requested_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    items = []
+    for w in rows:
+        user = db.query(User).filter(User.id == w.user_id).first()
+        profile = db.query(Profile).filter(Profile.user_id == w.user_id).first() if user else None
+        items.append(
+            _serialize_withdrawal(
+                w,
+                user_email=user.email if user else None,
+                username=profile.username if profile else None,
+            )
+        )
+
+    return AdminWithdrawalListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.post("/withdrawals/{withdrawal_id}/mark-paid", response_model=AdminActionResponse)
+def admin_mark_withdrawal_paid(
+    withdrawal_id: str,
+    payload: AdminMarkWithdrawalPaidRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    from datetime import datetime, timezone
+    from app.models.withdrawal_request import WithdrawalRequest
+    from app.models.profile import Profile
+    from app.services.admin_audit import log_admin_action
+    from app.services.notifications import notify_user
+
+    withdrawal = db.query(WithdrawalRequest).filter(WithdrawalRequest.id == withdrawal_id).first()
+    if not withdrawal:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Withdrawal request not found")
+
+    if withdrawal.status == "paid":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This withdrawal has already been marked as paid.",
+        )
+
+    now = datetime.now(timezone.utc)
+    withdrawal.status = "paid"
+    withdrawal.paid_at = now
+    if payload.admin_note is not None:
+        withdrawal.admin_note = payload.admin_note
+    db.add(withdrawal)
+
+    log_admin_action(
+        db,
+        admin_user_id=admin.id,
+        action="mark_withdrawal_paid",
+        target_type="withdrawal_request",
+        target_id=withdrawal_id,
+        details={
+            "amount": float(withdrawal.amount),
+            "user_id": withdrawal.user_id,
+            "admin_note": payload.admin_note,
+        },
+    )
+
+    notify_user(
+        db,
+        withdrawal.user_id,
+        "withdrawal_paid",
+        {"amount": float(withdrawal.amount)},
+    )
+
+    db.commit()
+
+    return AdminActionResponse(
+        message=f"Withdrawal of ₦{float(withdrawal.amount):,.0f} marked as paid.",
+        data={
+            "withdrawal_id": withdrawal_id,
+            "amount": float(withdrawal.amount),
+            "paid_at": now.isoformat(),
+            "admin_note": payload.admin_note,
+        },
     )

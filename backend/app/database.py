@@ -434,6 +434,49 @@ def _migrate_profiles_admin_schema(conn, is_sqlite: bool) -> None:
         conn.execute(text("ALTER TABLE profiles ADD COLUMN profile_disabled BOOLEAN NOT NULL DEFAULT false"))
 
 
+def _migrate_users_wallet_schema(conn, is_sqlite: bool) -> None:
+    """Add wallet_balance and referred_by_id to the users table."""
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+        names = {row[1] for row in columns}
+        additions = [
+            (
+                "wallet_balance",
+                "ALTER TABLE users ADD COLUMN wallet_balance NUMERIC(10,2) NOT NULL DEFAULT 0.00",
+            ),
+            (
+                "referred_by_id",
+                "ALTER TABLE users ADD COLUMN referred_by_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL",
+            ),
+        ]
+        for column, ddl in additions:
+            if column not in names:
+                conn.execute(text(ddl))
+        return
+
+    for column, ddl in (
+        (
+            "wallet_balance",
+            "ALTER TABLE users ADD COLUMN wallet_balance NUMERIC(10,2) NOT NULL DEFAULT 0.00",
+        ),
+        (
+            "referred_by_id",
+            "ALTER TABLE users ADD COLUMN referred_by_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL",
+        ),
+    ):
+        row = conn.execute(
+            text(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = :column
+                """
+            ),
+            {"column": column},
+        ).fetchone()
+        if not row:
+            conn.execute(text(ddl))
+
+
 def _migrate_product_purchases_refund_schema(conn, is_sqlite: bool) -> None:
     if is_sqlite:
         columns = conn.execute(text("PRAGMA table_info(product_purchases)")).fetchall()
@@ -491,6 +534,7 @@ def _migrate_postgres_schema() -> None:
         _migrate_users_admin_schema(conn, is_sqlite=False)
         _migrate_profiles_admin_schema(conn, is_sqlite=False)
         _migrate_product_purchases_refund_schema(conn, is_sqlite=False)
+        _migrate_users_wallet_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -523,3 +567,4 @@ def _migrate_sqlite_schema() -> None:
         _migrate_users_admin_schema(conn, is_sqlite=True)
         _migrate_profiles_admin_schema(conn, is_sqlite=True)
         _migrate_product_purchases_refund_schema(conn, is_sqlite=True)
+        _migrate_users_wallet_schema(conn, is_sqlite=True)

@@ -18,6 +18,8 @@ import {
 
   Settings,
 
+  Wallet,
+
   type LucideIcon,
 
 } from "lucide-react";
@@ -54,6 +56,8 @@ export const dashboardSidebarNav: DashboardNavItem[] = [
 
   { name: "Subscribers", icon: Mail, path: "/dashboard/subscribers" },
 
+  { name: "Wallet", icon: Wallet, path: "/dashboard/wallet" },
+
   { name: "Insights", icon: BarChart2, path: "/dashboard/analytics" },
 
   { name: "Theme", icon: Palette, path: "/dashboard/appearance" },
@@ -89,6 +93,8 @@ const CONTENT_PATHS = new Set(["/dashboard/content", "/dashboard/links", "/dashb
 
 
 const MORE_PATH_PREFIXES = [
+
+  "/dashboard/wallet",
 
   "/dashboard/sales",
 
@@ -183,6 +189,8 @@ export function getDashboardPageTitle(pathname: string, searchParams?: URLSearch
 
 
   if (isMoreSectionActive(pathname)) {
+
+    if (pathname.startsWith("/dashboard/wallet")) return "Wallet";
 
     if (pathname.startsWith("/dashboard/sales")) return "Sales";
 

@@ -9,6 +9,7 @@ import {
   Mail,
   Receipt,
   Settings,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,12 @@ export type MoreSheetItem = {
 };
 
 export const MORE_SHEET_ITEMS: MoreSheetItem[] = [
+  {
+    label: "Wallet",
+    description: "Referral earnings & withdrawals",
+    href: "/dashboard/wallet",
+    icon: Wallet,
+  },
   {
     label: "Sales",
     description: "Product purchase history",

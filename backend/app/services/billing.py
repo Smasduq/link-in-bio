@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.billing_event import BillingEvent
+from app.models.referral_earning import ReferralEarning
 from app.models.user import User
 from app.services.notifications import has_recent_notification, notify_user
 from app.services.plan_catalog import plan_pricing_payload
@@ -344,6 +345,69 @@ def activate_manual_premium(
     db.add(user)
 
 
+def _maybe_credit_referrer(db: Session, paying_user: User) -> None:
+    """Credit the referrer ₦100 when the referred user pays for the first time.
+
+    Guards:
+    - paying_user must have a referred_by_id set.
+    - No existing ReferralEarning where referral_id = paying_user.id (first-time only).
+    - The referrer must still exist and not be deleted.
+    """
+    if not paying_user.referred_by_id:
+        return
+
+    # Idempotency check — only pay out once per referred user.
+    already_credited = (
+        db.query(ReferralEarning.id)
+        .filter(ReferralEarning.referral_id == paying_user.id)
+        .first()
+    )
+    if already_credited:
+        return
+
+    referrer = db.query(User).filter(User.id == paying_user.referred_by_id).first()
+    if referrer is None or referrer.deleted_at is not None:
+        return
+
+    REFERRAL_CREDIT = 100.0
+
+    earning = ReferralEarning(
+        user_id=referrer.id,
+        referral_id=paying_user.id,
+        amount=REFERRAL_CREDIT,
+    )
+    db.add(earning)
+
+    # Use raw SQL increment to avoid a lost-update race on wallet_balance.
+    from sqlalchemy import text as _text
+    db.execute(
+        _text("UPDATE users SET wallet_balance = wallet_balance + :amount WHERE id = :uid"),
+        {"amount": REFERRAL_CREDIT, "uid": referrer.id},
+    )
+    db.flush()
+
+    # Re-read the referrer's updated balance for the notification context.
+    db.refresh(referrer)
+    new_balance = float(referrer.wallet_balance)
+
+    notify_user(
+        db,
+        referrer.id,
+        "referral_reward",
+        {
+            "amount": REFERRAL_CREDIT,
+            "wallet_balance": new_balance,
+        },
+    )
+    logger.info(
+        "Referral credit of ₦%s applied to user %s (referred user: %s); new balance: ₦%s",
+        REFERRAL_CREDIT,
+        referrer.id,
+        paying_user.id,
+        new_balance,
+    )
+
+
 def process_successful_charge(db: Session, user: User, data: dict[str, Any], *, reference: str | None = None) -> None:
     if is_trial_tokenization_charge(data):
         return
@@ -395,6 +459,9 @@ def process_successful_charge(db: Session, user: User, data: dict[str, Any], *, 
         notify_user(db, user.id, "payment_success", payment_context)
     if was_resubscribe and not has_recent_notification(db, user_id=user.id, notification_type="resubscribed", within_hours=2):
         notify_user(db, user.id, "resubscribed", payment_context)
+
+    # Credit the referrer on the paying user's first successful charge.
+    _maybe_credit_referrer(db, user)
 
 
 def mark_subscription_cancelled(db: Session, user: User) -> None:

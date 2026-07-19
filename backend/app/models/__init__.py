@@ -18,6 +18,8 @@ from app.models.profile import Profile
 from app.models.push_subscription import PushSubscription
 from app.models.trial_email_claim import TrialEmailClaim
 from app.models.user import User
+from app.models.referral_earning import ReferralEarning
+from app.models.withdrawal_request import WithdrawalRequest
 
 __all__ = [
     "User",
@@ -41,4 +43,6 @@ __all__ = [
     "FeatureFlag",
     "CronRun",
     "PaystackWebhookEvent",
+    "ReferralEarning",
+    "WithdrawalRequest",
 ]
