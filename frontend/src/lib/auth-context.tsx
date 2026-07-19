@@ -38,7 +38,7 @@ type AuthContextType = {
   loading: boolean;
   login: (identifier: string, password: string) => Promise<LoginRequestResponse>;
   verifyLoginOtp: (challengeId: string, otp: string) => Promise<void>;
-  requestRegisterOtp: (email: string, password: string, username: string) => Promise<OtpChallenge>;
+  requestRegisterOtp: (email: string, password: string, username: string, ref?: string) => Promise<OtpChallenge>;
   verifyRegisterOtp: (challengeId: string, otp: string) => Promise<void>;
   resendOtp: (challengeId: string) => Promise<OtpChallenge>;
   logout: () => void;
@@ -107,10 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     finishAuth();
   };
 
-  const requestRegisterOtp = async (email: string, password: string, username: string) => {
+  const requestRegisterOtp = async (email: string, password: string, username: string, ref?: string) => {
     return apiFetch<OtpChallenge>("/api/auth/register/request", {
       method: "POST",
-      body: JSON.stringify({ email, password, username }),
+      body: JSON.stringify({ email, password, username, ref: ref || undefined }),
     });
   };
 

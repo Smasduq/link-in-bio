@@ -497,6 +497,31 @@ def _migrate_product_purchases_refund_schema(conn, is_sqlite: bool) -> None:
         conn.execute(text("ALTER TABLE product_purchases ADD COLUMN refund_status VARCHAR(20)"))
 
 
+def _migrate_otp_referrer_schema(conn, is_sqlite: bool) -> None:
+    """Add signup_referrer_id to otp_challenges for referral tracking."""
+    if is_sqlite:
+        columns = conn.execute(text("PRAGMA table_info(otp_challenges)")).fetchall()
+        names = {row[1] for row in columns}
+        if "signup_referrer_id" not in names:
+            conn.execute(
+                text("ALTER TABLE otp_challenges ADD COLUMN signup_referrer_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL")
+            )
+        return
+
+    row = conn.execute(
+        text(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'otp_challenges' AND column_name = 'signup_referrer_id'
+            """
+        )
+    ).fetchone()
+    if not row:
+        conn.execute(
+            text("ALTER TABLE otp_challenges ADD COLUMN signup_referrer_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL")
+        )
+
+
 def _migrate_postgres_schema() -> None:
     if _is_sqlite:
         return
@@ -535,6 +560,7 @@ def _migrate_postgres_schema() -> None:
         _migrate_profiles_admin_schema(conn, is_sqlite=False)
         _migrate_product_purchases_refund_schema(conn, is_sqlite=False)
         _migrate_users_wallet_schema(conn, is_sqlite=False)
+        _migrate_otp_referrer_schema(conn, is_sqlite=False)
 
 
 def _migrate_sqlite_schema() -> None:
@@ -568,3 +594,4 @@ def _migrate_sqlite_schema() -> None:
         _migrate_profiles_admin_schema(conn, is_sqlite=True)
         _migrate_product_purchases_refund_schema(conn, is_sqlite=True)
         _migrate_users_wallet_schema(conn, is_sqlite=True)
+        _migrate_otp_referrer_schema(conn, is_sqlite=True)
