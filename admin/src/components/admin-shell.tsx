@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, CreditCard, Flag, LayoutDashboard, LogOut, Settings, Shield, Users } from "lucide-react";
+import { Bell, CreditCard, DollarSign, Flag, LayoutDashboard, LogOut, Settings, Shield, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/billing", label: "Billing", icon: CreditCard },
+  { href: "/admin/withdrawals", label: "Withdrawals", icon: DollarSign },
   { href: "/admin/content", label: "Content", icon: Flag },
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/settings", label: "Settings", icon: Settings },

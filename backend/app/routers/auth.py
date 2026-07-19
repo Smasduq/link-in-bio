@@ -21,7 +21,7 @@ from app.schemas.auth import (
     UserResponse,
     VerifyOtpRequest,
 )
-from app.services.auth import authenticate_user, create_access_token
+from app.services.auth import create_access_token, verify_login_credentials
 from app.services.otp import (
     complete_login,
     complete_signup,
@@ -139,7 +139,12 @@ def login_request(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    user = authenticate_user(db, payload.login_identifier, payload.password)
+    user, block_reason = verify_login_credentials(db, payload.login_identifier, payload.password)
+    if block_reason == "suspended":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been suspended - contact support",
+        )
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email, username, or password")
 

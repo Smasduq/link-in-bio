@@ -43,23 +43,33 @@ def normalize_login_identifier(identifier: str) -> str:
 
 
 def authenticate_user(db: Session, identifier: str, password: str) -> User | None:
+    user, block_reason = verify_login_credentials(db, identifier, password)
+    if block_reason:
+        return None
+    return user
+
+
+def verify_login_credentials(db: Session, identifier: str, password: str) -> tuple[User | None, str | None]:
+    """Returns (user, block_reason). block_reason is 'suspended', 'deleted', or 'invalid'."""
     normalized = normalize_login_identifier(identifier)
     if not normalized:
-        return None
+        return None, "invalid"
 
     if "@" in normalized:
         user = db.query(User).filter(func.lower(User.email) == normalized).first()
     else:
         profile = db.query(Profile).filter(func.lower(Profile.username) == normalized).first()
         if not profile:
-            return None
+            return None, "invalid"
         user = db.query(User).filter(User.id == profile.user_id).first()
 
     if not user or not verify_password(password, user.password_hash):
-        return None
-    if user.deleted_at is not None or user.is_suspended:
-        return None
-    return user
+        return None, "invalid"
+    if user.deleted_at is not None:
+        return None, "deleted"
+    if user.is_suspended:
+        return None, "suspended"
+    return user, None
 
 
 def get_favicon_url(url: str) -> str | None:

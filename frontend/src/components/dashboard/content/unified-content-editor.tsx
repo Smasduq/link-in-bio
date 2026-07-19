@@ -23,6 +23,7 @@ import { GripVertical, Link as LinkIcon, Mail, Play, Plus, ShoppingBag } from "l
 import { apiFetch } from "@/lib/api";
 import type { ContentBlockType, Link as LinkRecord, Profile } from "@/types/database";
 import type { Product } from "@/lib/products";
+import { buttonClassName } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoader } from "@/components/ui/spinner";
 
@@ -199,24 +200,15 @@ export function UnifiedContentEditor() {
       </DndContext>
 
       <div className="flex flex-wrap gap-2">
-        <Link
-          href="/dashboard/content?tab=links"
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-emerald-600 bg-transparent px-4 text-sm font-semibold text-emerald-700 transition-all hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-        >
+        <Link href="/dashboard/content?tab=links" className={buttonClassName({ variant: "outline", size: "sm" })}>
           <Plus className="h-4 w-4" />
           Add link / embed
         </Link>
-        <Link
-          href="/dashboard/content?tab=products"
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-emerald-600 bg-transparent px-4 text-sm font-semibold text-emerald-700 transition-all hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-        >
+        <Link href="/dashboard/content?tab=products" className={buttonClassName({ variant: "outline", size: "sm" })}>
           <ShoppingBag className="h-4 w-4" />
           Add product
         </Link>
-        <Link
-          href="/dashboard/settings"
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-emerald-600 bg-transparent px-4 text-sm font-semibold text-emerald-700 transition-all hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-        >
+        <Link href="/dashboard/settings" className={buttonClassName({ variant: "outline", size: "sm" })}>
           <Mail className="h-4 w-4" />
           Newsletter settings
         </Link>

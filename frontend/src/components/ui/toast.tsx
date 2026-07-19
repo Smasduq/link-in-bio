@@ -41,8 +41,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "pointer-events-none fixed z-[100] flex flex-col gap-2",
-          "inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]",
-          "md:inset-x-auto md:bottom-6 md:right-4 md:left-auto md:w-[min(calc(100vw-2rem),380px)]"
+          "left-4 right-4 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]",
+          "md:left-auto md:right-4 md:bottom-6 md:w-80"
         )}
       >
         {toasts.map((toast) => (

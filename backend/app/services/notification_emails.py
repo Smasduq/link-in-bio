@@ -70,6 +70,17 @@ def render_notification_message(notification_type: NotificationType, context: di
         "milestone_clicks": f"🎉 You just hit {context.get('total_clicks', 0)} total clicks!",
         "inactivity_nudge": "Your page is still getting visitors — come check your stats.",
         "admin_broadcast": context.get("message") or context.get("subject") or "You have a new message from LinkBio.",
+        # Referral wallet
+        "referral_reward": (
+            f"🎉 You earned {_format_ngn(context.get('amount'))} from a referral! "
+            f"Balance: {_format_ngn(context.get('wallet_balance'))}"
+        ),
+        "withdrawal_requested": (
+            "Withdrawal request received — you'll be paid within 2 working days."
+        ),
+        "withdrawal_paid": (
+            f"💸 Your {_format_ngn(context.get('amount'))} withdrawal has been paid!"
+        ),
     }
     return messages.get(notification_type, "You have a new billing update.")
 
@@ -104,6 +115,10 @@ def render_notification_email(
         "milestone_clicks": f"Milestone reached — {SITE_NAME}",
         "inactivity_nudge": f"Your page is active — {SITE_NAME}",
         "admin_broadcast": context.get("subject") or f"Message from {SITE_NAME}",
+        # Referral wallet
+        "referral_reward": f"You earned a referral reward — {SITE_NAME}",
+        "withdrawal_requested": f"Withdrawal request received — {SITE_NAME}",
+        "withdrawal_paid": f"Your withdrawal has been paid — {SITE_NAME}",
     }
 
     bodies = {
@@ -182,6 +197,22 @@ def render_notification_email(
         "admin_broadcast": (
             f"<p>{context.get('message', 'You have a new message from LinkBio.')}</p>"
             f'<p><a href="{_link("/dashboard")}">Open dashboard</a></p>'
+        ),
+        # Referral wallet
+        "referral_reward": (
+            f"<p>🎉 You earned <strong>{_format_ngn(context.get('amount'))}</strong> from a referral!</p>"
+            f"<p>Your wallet balance is now <strong>{_format_ngn(context.get('wallet_balance'))}</strong>.</p>"
+            f'<p><a href="{_link("/dashboard/wallet")}">View wallet</a></p>'
+        ),
+        "withdrawal_requested": (
+            f"<p>We've received your withdrawal request for "
+            f"<strong>{_format_ngn(context.get('amount'))}</strong>.</p>"
+            f"<p>You'll be paid within <strong>2 working days</strong>.</p>"
+            f'<p><a href="{_link("/dashboard/wallet")}">View status</a></p>'
+        ),
+        "withdrawal_paid": (
+            f"<p>💸 Your withdrawal of <strong>{_format_ngn(context.get('amount'))}</strong> has been paid!</p>"
+            f'<p><a href="{_link("/dashboard/wallet")}">View wallet</a></p>'
         ),
     }
 

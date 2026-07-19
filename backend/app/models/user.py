@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Integer, String, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -39,7 +39,18 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="user", server_default="user")
     is_suspended: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     suspended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    suspended_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    manual_pro_grant: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    manual_pro_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Referral wallet — credited when a referred user pays for their first month.
+    wallet_balance: Mapped[float] = mapped_column(
+        Numeric(10, 2), nullable=False, default=0.0, server_default="0.00"
+    )
+    # The user who referred this account (set at sign-up via referral link).
+    referred_by_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     profile: Mapped["Profile"] = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")

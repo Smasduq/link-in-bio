@@ -76,8 +76,11 @@ class AdminActionRequest(BaseModel):
 
 
 class AdminGrantProRequest(AdminActionRequest):
-    plan: Literal["monthly", "yearly"] = "monthly"
-    days: int | None = Field(default=None, ge=1, le=3650)
+    pass
+
+
+class AdminSuspendRequest(AdminActionRequest):
+    disable_public_profile: bool = False
 
 
 class AdminDeleteUserRequest(AdminActionRequest):
@@ -234,3 +237,35 @@ class AdminFeatureFlagListResponse(BaseModel):
 
 class AdminFeatureFlagUpdateRequest(BaseModel):
     value: Any
+
+
+# ---------------------------------------------------------------------------
+# Withdrawal requests
+# ---------------------------------------------------------------------------
+
+
+class AdminWithdrawalItem(BaseModel):
+    id: str
+    user_id: str
+    user_email: str | None
+    username: str | None
+    amount: float
+    bank_name: str
+    account_number: str
+    account_name: str
+    status: str
+    requested_at: datetime
+    paid_at: datetime | None
+    admin_note: str | None
+    working_days_elapsed: int
+
+
+class AdminWithdrawalListResponse(BaseModel):
+    items: list[AdminWithdrawalItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class AdminMarkWithdrawalPaidRequest(BaseModel):
+    admin_note: str | None = Field(default=None, max_length=500)

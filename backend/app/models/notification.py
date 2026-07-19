@@ -23,6 +23,10 @@ NOTIFICATION_TYPES = (
     "milestone_clicks",
     "inactivity_nudge",
     "admin_broadcast",
+    # Referral wallet
+    "referral_reward",
+    "withdrawal_requested",
+    "withdrawal_paid",
 )
 
 BILLING_NOTIFICATION_TYPES = frozenset({
@@ -36,6 +40,10 @@ BILLING_NOTIFICATION_TYPES = frozenset({
     "resubscribed",
     "trial_ending",
     "product_sale",
+    # Wallet events are billing-category so they respect email_billing_enabled preference.
+    "referral_reward",
+    "withdrawal_requested",
+    "withdrawal_paid",
 })
 
 ENGAGEMENT_NOTIFICATION_TYPES = frozenset({

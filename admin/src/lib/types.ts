@@ -79,3 +79,30 @@ export type AdminUserDetail = {
 export function isStaffRole(role: string | undefined | null): boolean {
   return role === "support" || role === "admin";
 }
+
+// ---------------------------------------------------------------------------
+// Withdrawal requests
+// ---------------------------------------------------------------------------
+
+export type AdminWithdrawalItem = {
+  id: string;
+  user_id: string;
+  user_email: string | null;
+  username: string | null;
+  amount: number;
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+  status: "pending" | "paid";
+  requested_at: string;
+  paid_at: string | null;
+  admin_note: string | null;
+  working_days_elapsed: number;
+};
+
+export type AdminWithdrawalListResponse = {
+  items: AdminWithdrawalItem[];
+  total: number;
+  page: number;
+  page_size: number;
+};
