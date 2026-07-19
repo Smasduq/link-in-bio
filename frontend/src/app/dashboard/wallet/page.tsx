@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
-  ChevronRight,
   Clock,
   Copy,
   Share2,
+  UserCheck,
+  UserX,
   Wallet,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -28,6 +29,11 @@ type ReferralEarningItem = {
   created_at: string;
 };
 
+type PendingReferralItem = {
+  user_id: string;
+  joined_at: string;
+};
+
 type WithdrawalRequestItem = {
   id: string;
   amount: number;
@@ -43,6 +49,7 @@ type WalletData = {
   wallet_balance: number;
   minimum_withdrawal: number;
   referral_earnings: ReferralEarningItem[];
+  pending_referrals: PendingReferralItem[];
   withdrawal_requests: WithdrawalRequestItem[];
   pending_withdrawal: WithdrawalRequestItem | null;
   referrals_needed_for_withdrawal: number;
@@ -242,6 +249,68 @@ function PendingBanner({ w }: { w: WithdrawalRequestItem }) {
     </div>
   );
 }
+
+function PendingReferralsCard({ referrals }: { referrals: PendingReferralItem[] }) {
+  // Always render so the user knows about this section even when empty.
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-base font-semibold">Pending referrals</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Friends who signed up with your link but haven't upgraded yet.
+            You'll earn ₦100 when each one pays their first month.
+          </p>
+        </div>
+        {referrals.length > 0 && (
+          <span className="flex h-7 min-w-[1.75rem] shrink-0 items-center justify-center rounded-full bg-amber-100 px-2 text-xs font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+            {referrals.length}
+          </span>
+        )}
+      </div>
+
+      {referrals.length === 0 ? (
+        <div className="mt-5 flex flex-col items-center py-6 text-center">
+          <UserX className="h-8 w-8 text-muted-foreground/50" />
+          <p className="mt-2.5 text-sm font-medium text-muted-foreground">
+            No pending referrals
+          </p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            When someone signs up with your link they'll appear here until they pay.
+          </p>
+        </div>
+      ) : (
+        <ul className="mt-4 divide-y divide-border">
+          {referrals.map((r, i) => (
+            <li key={r.user_id} className="flex items-center gap-3 py-3">
+              {/* Anonymous avatar placeholder — we only have user_id, no name */}
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-muted-foreground">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Friend #{i + 1}</p>
+                <p className="text-xs text-muted-foreground">
+                  Joined {formatDate(r.joined_at)}
+                </p>
+              </div>
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                <Clock className="h-3 w-3" />
+                Not paid yet
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {referrals.length > 0 && (
+        <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+          💡 Share your link again to remind them — or nudge them to upgrade!
+        </p>
+      )}
+    </div>
+  );
+}
+
 
 function EarningsTable({ earnings }: { earnings: ReferralEarningItem[] }) {
   if (earnings.length === 0) {
@@ -608,12 +677,18 @@ export default function WalletPage() {
       {/* Referral link */}
       <ReferralLinkCard code={data.referral_link_code} />
 
+      {/* Pending referrals — signed up but haven't paid yet */}
+      <PendingReferralsCard referrals={data.pending_referrals} />
+
       {/* Earnings history */}
       <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <h2 className="mb-1 font-display text-base font-semibold">Referral earnings</h2>
+        <h2 className="mb-1 font-display text-base font-semibold">Paid referrals</h2>
         <p className="mb-4 text-xs text-muted-foreground">
-          {data.referral_earnings.length} successful referral
-          {data.referral_earnings.length !== 1 ? "s" : ""}
+          {data.referral_earnings.length} friend{data.referral_earnings.length !== 1 ? "s" : ""} paid — you earned{" "}
+          <span className="font-semibold text-foreground">
+            {formatNGN(data.referral_earnings.reduce((s, e) => s + e.amount, 0))}
+          </span>{" "}
+          in total
         </p>
         <EarningsTable earnings={data.referral_earnings} />
       </div>

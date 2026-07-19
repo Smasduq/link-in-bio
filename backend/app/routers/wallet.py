@@ -43,6 +43,12 @@ class ReferralEarningItem(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PendingReferralItem(BaseModel):
+    """A user who signed up via this user's referral link but hasn't paid yet."""
+    user_id: str
+    joined_at: datetime
+
+
 class WithdrawalRequestItem(BaseModel):
     id: str
     amount: float
@@ -60,6 +66,7 @@ class WalletResponse(BaseModel):
     wallet_balance: float
     minimum_withdrawal: float
     referral_earnings: list[ReferralEarningItem]
+    pending_referrals: list[PendingReferralItem]
     withdrawal_requests: list[WithdrawalRequestItem]
     pending_withdrawal: WithdrawalRequestItem | None
     # Convenience fields for the frontend progress bar
@@ -118,6 +125,22 @@ def get_wallet(
         .all()
     )
 
+    # Users who signed up via this user's referral link but have not paid yet.
+    # We find them by: referred_by_id = user.id AND no ReferralEarning row
+    # where referral_id = their id.
+    paid_referral_ids = {e.referral_id for e in earnings}
+    all_referred = (
+        db.query(User.id, User.created_at)
+        .filter(User.referred_by_id == user.id)
+        .order_by(User.created_at.desc())
+        .all()
+    )
+    pending_referrals = [
+        PendingReferralItem(user_id=r.id, joined_at=r.created_at)
+        for r in all_referred
+        if r.id not in paid_referral_ids
+    ]
+
     withdrawals = (
         db.query(WithdrawalRequest)
         .filter(WithdrawalRequest.user_id == user.id)
@@ -135,6 +158,7 @@ def get_wallet(
         wallet_balance=balance,
         minimum_withdrawal=MINIMUM_WITHDRAWAL_AMOUNT,
         referral_earnings=[ReferralEarningItem.model_validate(e) for e in earnings],
+        pending_referrals=pending_referrals,
         withdrawal_requests=[WithdrawalRequestItem.model_validate(w) for w in withdrawals],
         pending_withdrawal=WithdrawalRequestItem.model_validate(pending) if pending else None,
         referrals_needed_for_withdrawal=referrals_needed,
