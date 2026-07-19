@@ -49,12 +49,14 @@ function SignUpForm() {
     }
   }, [searchParams]);
 
+  const refCode = searchParams.get("ref") || undefined;
+
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const data = await requestRegisterOtp(email, password, username);
+      const data = await requestRegisterOtp(email, password, username, refCode);
       setChallengeId(data.challenge_id);
       setMaskedEmail(data.email);
       setOtp("");

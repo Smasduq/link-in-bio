@@ -32,7 +32,7 @@ def _normalize_expires(expires_at: datetime) -> datetime:
     return expires_at
 
 
-def create_signup_challenge(db: Session, *, email: str, username: str, password: str) -> tuple[str, str]:
+def create_signup_challenge(db: Session, *, email: str, username: str, password: str, referrer_id: str | None = None) -> tuple[str, str]:
     username = username.lower().strip()
     otp = _generate_otp()
 
@@ -47,6 +47,7 @@ def create_signup_challenge(db: Session, *, email: str, username: str, password:
         otp_hash=_hash_otp(otp),
         signup_username=username,
         signup_password_hash=hash_password(password),
+        signup_referrer_id=referrer_id,
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=settings.otp_expire_minutes),
     )
     db.add(challenge)
@@ -132,6 +133,7 @@ def complete_signup(db: Session, challenge: OtpChallenge) -> User:
         password_hash=challenge.signup_password_hash,
         name=challenge.signup_username,
         email_verified_at=datetime.now(timezone.utc),
+        referred_by_id=challenge.signup_referrer_id,
     )
     profile = Profile(user=user, username=challenge.signup_username, full_name=challenge.signup_username)
     db.add(user)

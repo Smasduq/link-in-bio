@@ -5,6 +5,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     username: str = Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
+    ref: str | None = None
 
 
 class LoginRequest(BaseModel):

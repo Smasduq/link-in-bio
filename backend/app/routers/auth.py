@@ -95,7 +95,7 @@ def register_request(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken")
 
     challenge_id, otp = create_signup_challenge(
-        db, email=email, username=username, password=payload.password
+        db, email=email, username=username, password=payload.password, referrer_id=payload.ref
     )
     return _send_otp_or_fail(db, challenge_id=challenge_id, to=email, otp=otp, purpose="signup")
 
