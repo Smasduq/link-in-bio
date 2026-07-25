@@ -148,7 +148,7 @@ def login_request(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email, username, or password")
 
-    if user.is_email_verified:
+    if user.is_email_verified or user.is_staff:
         auth = _auth_response(user)
         return LoginRequestResponse(
             requires_otp=False,
